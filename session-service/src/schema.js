@@ -5,7 +5,7 @@ const typeDefs = gql`
 
   enum SessionType {
     ONLINE
-    IN_PERSON
+    OFFLINE
   }
 
   enum ParticipantRole {
@@ -24,6 +24,7 @@ const typeDefs = gql`
     id: ID!
     topic: String!
     sessionType: SessionType!
+    location: String
     dateTime: DateTime!
     durationMins: Int!
     creatorId: String!
@@ -36,6 +37,7 @@ const typeDefs = gql`
   input CreateStudySessionInput {
     topic: String!
     sessionType: SessionType!
+    location: String
     dateTime: DateTime!
     durationMins: Int!
     creatorId: String!
@@ -43,7 +45,8 @@ const typeDefs = gql`
   }
 
   type Query {
-    sessions: [StudySession!]!
+    upcomingSessions(userId: String!): [StudySession!]!
+    pastSessions(userId: String!): [StudySession!]!
     sessionById(id: ID!): StudySession
   }
 

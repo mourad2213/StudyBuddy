@@ -1,27 +1,60 @@
 const prisma = require("./db");
 
+const sessionInclude = { participants: true };
+
 const resolvers = {
   Query: {
-    sessions: async () => {
+    upcomingSessions: async (_, { userId }) => {
       return prisma.studySession.findMany({
-        include: { participants: true },
+        where: {
+          OR: [
+            { creatorId: userId },
+            { participants: { some: { userId } } },
+          ],
+          dateTime: {
+            gte: new Date(),
+          },
+        },
+        include: sessionInclude,
         orderBy: { dateTime: "asc" },
+      });
+    },
+    pastSessions: async (_, { userId }) => {
+      return prisma.studySession.findMany({
+        where: {
+          OR: [
+            { creatorId: userId },
+            { participants: { some: { userId } } },
+          ],
+          dateTime: {
+            lt: new Date(),
+          },
+        },
+        include: sessionInclude,
+        orderBy: { dateTime: "desc" },
       });
     },
     sessionById: async (_, { id }) => {
       return prisma.studySession.findUnique({
         where: { id },
-        include: { participants: true },
+        include: sessionInclude,
       });
     },
   },
 
   Mutation: {
     createStudySession: async (_, { input }) => {
+      const normalizedLocation = input.location?.trim();
+
+      if (input.sessionType === "OFFLINE" && !normalizedLocation) {
+        throw new Error("Location is required for offline sessions.");
+      }
+
       const session = await prisma.studySession.create({
         data: {
           topic: input.topic,
           sessionType: input.sessionType,
+          location: input.sessionType === "OFFLINE" ? normalizedLocation : null,
           dateTime: new Date(input.dateTime),
           durationMins: input.durationMins,
           creatorId: input.creatorId,
@@ -33,7 +66,7 @@ const resolvers = {
             },
           },
         },
-        include: { participants: true },
+        include: sessionInclude,
       });
 
       return session;
@@ -50,7 +83,7 @@ const resolvers = {
 
       return prisma.studySession.findUnique({
         where: { id: sessionId },
-        include: { participants: true },
+        include: sessionInclude,
       });
     },
 
@@ -64,7 +97,7 @@ const resolvers = {
 
       return prisma.studySession.findUnique({
         where: { id: sessionId },
-        include: { participants: true },
+        include: sessionInclude,
       });
     },
 

@@ -11,6 +11,7 @@ model StudySession {
   id           String   @id @default(uuid())
   topic        String
   sessionType  SessionType
+  location     String?
   dateTime     DateTime
   durationMins Int
   creatorId    String
@@ -33,7 +34,7 @@ model SessionParticipant {
 
 enum SessionType {
   ONLINE
-  IN_PERSON
+  OFFLINE
 }
 
 enum ParticipantRole {
