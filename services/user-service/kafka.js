@@ -2,7 +2,8 @@ import { Kafka } from "kafkajs";
 
 const kafka = new Kafka({
   clientId: "user-service",
-  brokers: ["localhost:9092"], // change later if needed
+  brokers: ["kafka:9092"],
+  //brokers: ["localhost:9092"], // MUST be localhost for now
 });
 
 const producer = kafka.producer();
@@ -13,6 +14,7 @@ export const connectProducer = async () => {
 
 export const sendEvent = async (topic, data) => {
   try {
+    console.log("Sending event to Kafka:", topic);
     await producer.send({
       topic,
       messages: [
@@ -25,6 +27,7 @@ export const sendEvent = async (topic, data) => {
         },
       ],
     });
+    console.log("✅ Event sent successfully");
   } catch (err) {
     console.log("Kafka send failed, skipping...");
   }
