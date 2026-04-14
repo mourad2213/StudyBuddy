@@ -11,6 +11,15 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
-    "@prisma/client": "^7.7.0"
+    "@prisma/client": "^6.19.3",
+    "apollo-server-express": "^3.13.0",
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^4.22.1",
+    "graphql": "^16.13.2",
+    "jsonwebtoken": "^9.0.3",
+    "kafkajs": "^2.2.4",
+    "prisma": "^6.19.3"
   }
 }
