@@ -4,6 +4,7 @@ import express from "express";
 import { typeDefs } from "./graphql/schema/user.type.js";
 import { authResolvers } from "./graphql/resolvers/auth.resolver.js";
 import { userResolvers } from "./graphql/resolvers/user.resolver.js";
+import { connectProducer } from "./kafka.js";
 
 const app = express(); // create express app(the server)
 
@@ -20,3 +21,10 @@ server.applyMiddleware({ app }); //Mount GraphQL endpoint , this creates the loc
 app.listen(4001, () => {
   console.log("User service running on port 4001");
 }); // start the server on port 4001
+
+try {
+  await connectProducer();
+  console.log("Kafka connected");
+} catch (err) {
+  console.log("Kafka not available, continuing without it");
+} // connect to kafka producer

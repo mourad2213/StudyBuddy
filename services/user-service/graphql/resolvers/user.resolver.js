@@ -1,8 +1,8 @@
 import prisma from "../../prismaClient.js";
 import jwt from "jsonwebtoken";
+import { sendEvent } from "../../kafka.js";
 // get and update  the user
-const JWT_SECRET = "supersecret";
-
+const JWT_SECRET = process.env.JWT_SECRET;
 export const userResolvers = {
   Query: {
     getMe: async (_, __, { req }) => {

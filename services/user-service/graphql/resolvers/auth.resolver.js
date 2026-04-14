@@ -1,9 +1,10 @@
 import prisma from "../../prismaClient.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-//register and  login 
+import { sendEvent } from "../../kafka.js";
 
-const JWT_SECRET = "supersecret"; // move to .env later
+//register and  login
+const JWT_SECRET = process.env.JWT_SECRET;
 
 export const authResolvers = {
   Mutation: {
@@ -22,7 +23,12 @@ export const authResolvers = {
 
       // create token
       const token = jwt.sign({ userId: user.id }, JWT_SECRET);
-
+      // send event to kafka
+      try {
+        await sendEvent("UserRegistered", user);
+      } catch (err) {
+        console.log("Kafka not available, skipping event");
+      } // send event to kafka
       return { token, user };
     },
 
