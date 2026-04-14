@@ -162,27 +162,57 @@ const typeDefs = gql`
             data: { profileId, name }
         });
 
+
+        if (!course || !course.profile) {
+        throw new Error("Course or profile not found");
+        }
+
+        const profile = await prisma.profile.findUnique({
+        where: { id: profileId }
+        });
+
+        if (!profile) {
+        throw new Error("Profile not found");
+        }
+
         await sendEvent("CourseUpdated", {
         event: "CourseUpdated",
         timestamp: new Date(),
         service: "profile-service",
-        payload: { profileId, name }
+        payload: {
+            userId: profile.userId,   // ✅ ADD THIS
+            profileId,
+            name
+        }
         });
 
         return course;
         },
 
         updateCourse: async (_, { id, name }) => {
+        const course = await prisma.course.findUnique({
+        where: { id },
+        include: { profile: true }
+        });
+
+        if (!course || !course.profile) {
+        throw new Error("Course or profile not found");
+        }
+
         const updated = await prisma.course.update({
-            where: { id },
-            data: { name }
+        where: { id },
+        data: { name }
         });
 
         await sendEvent("CourseUpdated", {
-            event: "CourseUpdated",
-            timestamp: new Date(),
-            service: "profile-service",
-            payload: { id, name }
+        event: "CourseUpdated",
+        timestamp: new Date(),
+        service: "profile-service",
+        payload: {
+            userId: course.profile.userId,  // ✅ IMPORTANT
+            id,
+            name
+        }
         });
 
         return updated;
@@ -193,11 +223,24 @@ const typeDefs = gql`
             data: { profileId, name }
         });
 
+        const profile = await prisma.profile.findUnique({
+        where: { id: profileId }
+        });
+
+        if (!profile) {
+        throw new Error("Profile not found");
+        }
+
+
         await sendEvent("TopicUpdated", {
         event: "TopicUpdated",
         timestamp: new Date(),
         service: "profile-service",
-        payload: { profileId, name }
+        payload: {
+            userId: profile.userId,   // ✅ ADD THIS
+            profileId,
+            name
+        }
         });
         return topic;
         },
@@ -208,13 +251,24 @@ const typeDefs = gql`
             data: args
             });
 
+            const profile = await prisma.profile.findUnique({
+            where: { id: args.profileId }
+            });
+
+            if (!profile) {
+            throw new Error("Profile not found");
+            }
+
+
             await sendEvent("UserPreferencesUpdated", {
             event: "UserPreferencesUpdated",
             timestamp: new Date(),
             service: "profile-service",
-            payload: pref
+            payload: {
+                userId: profile.userId,   // ✅ ADD THIS
+                ...pref
+            }
             });
-
             return pref;
         } catch (error) {
             // Prisma unique constraint error
@@ -233,17 +287,31 @@ const typeDefs = gql`
         create: { profileId, ...data }
         });
 
+       const profile = await prisma.profile.findUnique({
+        where: { id: profileId }
+        });
+
+
+        if (!profile) {
+        throw new Error("Profile not found");
+        }
+
+
         await sendEvent("UserPreferencesUpdated", {
         event: "UserPreferencesUpdated",
         timestamp: new Date(),
         service: "profile-service",
-        payload: { profileId, ...data }
-        });;
-
-        return updated;
+        payload: {
+            userId: profile.userId,   // ✅ ADD THIS
+            profileId,
+            ...data
         }
-    }
-    };
+        });
+
+                return updated;
+                }
+            }
+            };
 
 
 // start server
