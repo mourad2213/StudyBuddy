@@ -1,0 +1,261 @@
+version: '3.8'
+
+services:
+  # Zookeeper - required for Kafka coordination
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - studybuddy-network
+
+  # Kafka Broker
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "19092:19092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    networks:
+      - studybuddy-network
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: studybuddy
+      POSTGRES_PASSWORD: studybuddy123
+      POSTGRES_DB: studybuddy
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - studybuddy-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U studybuddy"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Gateway
+  gateway:
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      SERVICE_NAME: gateway
+    depends_on:
+      - user-service
+      - availability-service
+      - matching-service
+      - messaging-service
+      - notification-service
+      - profile-service
+      - session-service
+    networks:
+      - studybuddy-network
+
+  # User Service
+  user-service:
+    build:
+      context: ./services/user-service
+      dockerfile: Dockerfile
+    ports:
+      - "4001:4001"
+    environment:
+      PORT: 4001
+      SERVICE_NAME: user-service
+      DATABASE_URL: postgresql://studybuddy:studybuddy123@postgres:5432/studybuddy
+      KAFKA_BROKER: kafka:29092
+      NODE_ENV: development
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    networks:
+      - studybuddy-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Availability Service
+  availability-service:
+    build:
+      context: ./services/availability-service
+      dockerfile: Dockerfile
+    ports:
+      - "4002:4002"
+    environment:
+      PORT: 4002
+      SERVICE_NAME: availability-service
+      DATABASE_URL: postgresql://studybuddy:studybuddy123@postgres:5432/studybuddy
+      KAFKA_BROKER: kafka:29092
+      NODE_ENV: development
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    networks:
+      - studybuddy-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4002/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Matching Service
+  matching-service:
+    build:
+      context: ./services/matching-service
+      dockerfile: Dockerfile
+    ports:
+      - "4003:4003"
+    environment:
+      PORT: 4003
+      SERVICE_NAME: matching-service
+      DATABASE_URL: postgresql://studybuddy:studybuddy123@postgres:5432/studybuddy
+      KAFKA_BROKER: kafka:29092
+      NODE_ENV: development
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    networks:
+      - studybuddy-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4003/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Messaging Service
+  messaging-service:
+    build:
+      context: ./services/messaging-service
+      dockerfile: Dockerfile
+    ports:
+      - "4004:4004"
+    environment:
+      PORT: 4004
+      SERVICE_NAME: messaging-service
+      DATABASE_URL: postgresql://studybuddy:studybuddy123@postgres:5432/studybuddy
+      KAFKA_BROKER: kafka:29092
+      NODE_ENV: development
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    networks:
+      - studybuddy-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4004/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Notification Service
+  notification-service:
+    build:
+      context: ./services/notification-service
+      dockerfile: Dockerfile
+    ports:
+      - "4005:4005"
+    environment:
+      PORT: 4005
+      SERVICE_NAME: notification-service
+      DATABASE_URL: postgresql://studybuddy:studybuddy123@postgres:5432/studybuddy
+      KAFKA_BROKER: kafka:29092
+      NODE_ENV: development
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    networks:
+      - studybuddy-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4005/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Profile Service
+  profile-service:
+    build:
+      context: ./services/profile-service
+      dockerfile: Dockerfile
+    ports:
+      - "4006:4006"
+    environment:
+      PORT: 4006
+      SERVICE_NAME: profile-service
+      DATABASE_URL: postgresql://studybuddy:studybuddy123@postgres:5432/studybuddy
+      KAFKA_BROKER: kafka:29092
+      NODE_ENV: development
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    networks:
+      - studybuddy-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4006/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Session Service
+  session-service:
+    build:
+      context: ./services/session-service
+      dockerfile: Dockerfile
+    ports:
+      - "4007:4007"
+    environment:
+      PORT: 4007
+      SERVICE_NAME: session-service
+      DATABASE_URL: postgresql://studybuddy:studybuddy123@postgres:5432/studybuddy
+      KAFKA_BROKER: kafka:29092
+      NODE_ENV: development
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    networks:
+      - studybuddy-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4007/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+
+networks:
+  studybuddy-network:
+    driver: bridge
