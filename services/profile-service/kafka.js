@@ -2,46 +2,45 @@ const { Kafka } = require("kafkajs");
 
 const kafka = new Kafka({
   clientId: "profile-service",
-  brokers: [process.env.KAFKA_BROKER],
+  brokers: [process.env.KAFKA_BROKER || "kafka:29092"],
 });
 
 const producer = kafka.producer();
-const consumer = kafka.consumer({ groupId: "test-group" });
 
 async function connectKafka() {
-  await producer.connect();
-  console.log("✅ Kafka Producer Connected");
-
-  await consumer.connect();
-  console.log("👂 Kafka Consumer Connected");
-
-  // subscribe to ALL your topics (for testing)
-  await consumer.subscribe({ topic: "UserPreferencesUpdated", fromBeginning: true });
-  await consumer.subscribe({ topic: "CourseUpdated", fromBeginning: true });
-  await consumer.subscribe({ topic: "TopicUpdated", fromBeginning: true });
-  await consumer.subscribe({ topic: "ProfileUpdated", fromBeginning: true });
-
-  await consumer.run({
-    eachMessage: async ({ topic, message }) => {
-      console.log("\n================ KAFKA EVENT RECEIVED ================");
-      console.log("📌 Topic:", topic);
-      console.log("📦 Message:", JSON.parse(message.value.toString()));
-      console.log("=====================================================\n");
-    },
-  });
+  let retries = 10;
+  while (retries > 0) {
+    try {
+      await producer.connect();
+      console.log("✅ Kafka Producer Connected");
+      break;
+    } catch (err) {
+      retries--;
+      console.log(`⏳ Kafka not ready, retrying in 5s... (${retries} retries left)`);
+      await new Promise((res) => setTimeout(res, 5000));
+      if (retries === 0) {
+        console.error("❌ Could not connect to Kafka after multiple retries");
+        return;
+      }
+    }
+  }
 }
 
-async function sendEvent(topic, message) {
+async function sendEvent(eventName, payload) {
   await producer.send({
-    topic,
+    topic: "study-events",
     messages: [
       {
-        value: JSON.stringify(message),
+        value: JSON.stringify({
+          event: eventName,
+          timestamp: new Date().toISOString(),
+          service: "profile-service",
+          payload
+        }),
       },
     ],
   });
-
-  console.log("📤 Event sent to Kafka:", topic);
+  console.log("📤 Event sent to Kafka:", eventName);
 }
 
 module.exports = { connectKafka, sendEvent };
