@@ -42,7 +42,6 @@ export async function consumeEvents(handler) {
   await consumer.run({
     eachMessage: async ({ topic, partition, message }) => {
       const event = JSON.parse(message.value?.toString() || '{}');
-      console.log(`Received event: ${topic}`);
       await handler(topic, event);
     },
   });
@@ -67,7 +66,6 @@ export async function produceRecommendationsEvent(recommendations, userId) {
     topic: MATCHING_EVENTS.RECOMMENDATIONS_GENERATED,
     messages: [{ value: JSON.stringify(event) }],
   });
-  console.log(`Produced ${recommendations.length} recommendations for user ${userId}`);
 }
 
 const producer = kafka.producer();
@@ -89,7 +87,6 @@ export async function produceEvent(topic, payload) {
     topic,
     messages: [{ value: JSON.stringify(event) }],
   });
-  console.log(`Produced event: ${topic}`);
 }
 
 export { kafka, consumer, producer };
