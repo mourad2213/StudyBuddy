@@ -1,0 +1,52 @@
+generator client {
+	provider      = "prisma-client-js"
+	binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+	provider = "postgresql"
+	url      = env("DATABASE_URL")
+}
+
+model SessionParticipant {
+	id           String          @id
+	userId       String
+	role         ParticipantRole @default(MEMBER)
+	inviteStatus InviteStatus    @default(PENDING)
+	respondedAt  DateTime?
+	joinedAt     DateTime        @default(now())
+	sessionId    String
+	StudySession StudySession    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+	@@unique([sessionId, userId])
+}
+
+model StudySession {
+	id                 String               @id
+	topic              String
+	sessionType        SessionType
+	location           String?
+	dateTime           DateTime
+	durationMins       Int
+	creatorId          String
+	contactInfo        String?
+	createdAt          DateTime             @default(now())
+	updatedAt          DateTime
+	SessionParticipant SessionParticipant[]
+}
+
+enum ParticipantRole {
+	HOST
+	MEMBER
+}
+
+enum SessionType {
+	ONLINE
+	OFFLINE
+}
+
+enum InviteStatus {
+	PENDING
+	ACCEPTED
+	DECLINED
+}
