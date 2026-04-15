@@ -153,10 +153,9 @@ const resolvers = {
         });
 
         // Publish event to Kafka
-        await kafka.publishEvent('AvailabilityUpdated', {
+        await kafka.publishEvent('AvailabilityCreated', {
           userId,
           availabilityId: availability.id,
-          action: 'created',
           dayOfWeek,
           startTime,
           endTime,
@@ -247,11 +246,14 @@ const resolvers = {
         });
 
         // Publish event to Kafka
-        await kafka.publishEvent('AvailabilityUpdated', {
+        try {
+        await kafka.publishEvent('AvailabilityDeleted', {
           userId,
           availabilityId: id,
-          action: 'deleted',
         });
+        } catch (e) {
+        console.error("Kafka failed", e);
+      }
 
         return true;
       } catch (err) {
