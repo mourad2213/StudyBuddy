@@ -60,6 +60,16 @@ const runConsumer = async () => {
           });
           break;
 
+        case "SESSION_UPDATED":
+          await prisma.notification.create({
+            data: {
+              userId: event.payload.userId,
+              message: "A study session has been updated.",
+              type: "SESSION_UPDATED",
+            },
+          });
+          break;
+
         case "SESSION_INVITATION_RECEIVED":
           await prisma.notification.create({
             data: {

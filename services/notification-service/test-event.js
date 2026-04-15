@@ -28,6 +28,12 @@ async function sendEvents() {
     },
     },
     {
+      "event": "SESSION_UPDATED",
+      "payload": {
+        "userId": "123"
+      }
+    },
+    {
       event: "SESSION_INVITATION_RECEIVED",
       timestamp: new Date().toISOString(),
       service: "test-producer",
