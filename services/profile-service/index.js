@@ -162,11 +162,6 @@ const typeDefs = gql`
             data: { profileId, name }
         });
 
-
-        if (!course || !course.profile) {
-        throw new Error("Course or profile not found");
-        }
-
         const profile = await prisma.profile.findUnique({
         where: { id: profileId }
         });

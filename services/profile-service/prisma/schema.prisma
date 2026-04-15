@@ -11,8 +11,8 @@ datasource db {
 model Profile {
   id             String @id @default(cuid())
   userId         String @unique
-  major          String
-  academicYear   String
+  major          String?
+  academicYear   String?
   bio            String?
 
   courses        Course[]

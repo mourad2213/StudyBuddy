@@ -1,3 +1,15 @@
-FROM alpine:3.20
+FROM node:18
 
-CMD ["sh"]
+WORKDIR /app
+
+COPY package*.json ./
+
+RUN npm install
+
+COPY . .
+
+RUN npx prisma generate
+
+EXPOSE 4000
+
+CMD ["node", "index.js"]
