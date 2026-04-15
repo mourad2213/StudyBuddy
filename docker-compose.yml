@@ -43,6 +43,7 @@ services:
       - DATABASE_URL=${DATABASE_URL}
       - KAFKA_BROKERS=kafka:29092
       - PORT=4004
+      - KAFKAJS_NO_PARTITIONER_WARNING=1
     depends_on:
       kafka:
         condition: service_healthy
