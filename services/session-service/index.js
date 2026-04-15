@@ -208,7 +208,7 @@ async function startServer() {
             id: randomUUID(),
             sessionId: session.id,
             userId: participant.userId,
-            role: participant.role,
+            role: normalizeParticipantRole(participant.role),
             inviteStatus: "PENDING",
           })),
           skipDuplicates: true,
@@ -216,15 +216,17 @@ async function startServer() {
       }
 
       try {
-        await publishMessage("session-events", {
+        await publishMessage("study-events", {
           key: userId,
           value: JSON.stringify({
+          event: "SESSION_CREATED",
+          payload: {
             userId,
             sessionId: session.id,
-            eventType: "session_created",
-            data: session,
-            timestamp: new Date().toISOString(),
-          }),
+            data: session
+          },
+          timestamp: new Date().toISOString()
+        }),
         });
       } catch (publishError) {
         console.warn("Kafka publish failed, session saved anyway:", publishError.message);
@@ -233,17 +235,18 @@ async function startServer() {
       if (participantsToInvite.length > 0) {
         try {
           await publishMessage(
-            "session-events",
+            "study-events",
             participantsToInvite.map((participant) => ({
               key: participant.userId,
               value: JSON.stringify({
-                eventType: "session_invite_requested",
+              event: "SESSION_INVITATION_RECEIVED",
+              payload: {
                 sessionId: session.id,
                 hostUserId: userId,
-                invitedUserId: participant.userId,
-                role: participant.role,
-                timestamp: new Date().toISOString(),
-              }),
+                userId: participant.userId,
+                role: normalizeParticipantRole(participant.role)
+              },
+              timestamp: new Date().toISOString()}),
             }))
           );
         } catch (publishError) {
@@ -298,15 +301,17 @@ async function startServer() {
       });
 
       try {
-        await publishMessage("session-events", {
+        await publishMessage("study-events", {
           key: userId,
           value: JSON.stringify({
-            eventType: "session_invite_requested",
-            sessionId,
-            hostUserId: existingSession.creatorId,
-            invitedUserId: userId,
-            role: participant.role,
-            timestamp: new Date().toISOString(),
+        event: "SESSION_INVITATION_RECEIVED",
+        payload: {
+          sessionId,
+          hostUserId: existingSession.creatorId,
+          userId,
+          role: normalizeParticipantRole(participant.role)
+        },
+        timestamp: new Date().toISOString(),
           }),
         });
       } catch (publishError) {
@@ -364,13 +369,15 @@ async function startServer() {
       });
 
       try {
-        await publishMessage("session-events", {
+        await publishMessage("study-events", {
           key: userId,
           value: JSON.stringify({
-            eventType: "session_invite_responded",
-            sessionId,
-            userId,
-            status: inviteStatus,
+            event: "SESSION_INVITATION_RESPONDED",
+            payload: {
+              sessionId,
+              userId,
+              status: inviteStatus
+            },
             timestamp: new Date().toISOString(),
           }),
         });

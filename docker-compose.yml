@@ -1,9 +1,14 @@
 version: '3.8'
 
 services:
-  # Zookeeper - required for Kafka coordination
+
+  # =======================
+  # ZOOKEEPER
+  # =======================
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
+    container_name: zookeeper
+    restart: unless-stopped
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
@@ -12,45 +17,42 @@ services:
     networks:
       - studybuddy-network
 
-  # Kafka Broker
+  # =======================
+  # KAFKA (MERGED FIXED VERSION)
+  # =======================
   kafka:
     image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka
+    restart: unless-stopped
     depends_on:
       - zookeeper
     ports:
       - "9092:9092"
-      - "19092:19092"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://kafka:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://localhost:9092
+
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
-    networks:
-      - studybuddy-network
 
-  # PostgreSQL Database
-  postgres:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_USER: studybuddy
-      POSTGRES_PASSWORD: studybuddy123
-      POSTGRES_DB: studybuddy
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - studybuddy-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U studybuddy"]
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "kafka:29092", "--list"]
       interval: 10s
-      timeout: 5s
-      retries: 5
+      timeout: 10s
+      retries: 10
+    networks:
+      - studybuddy-network
 
-  # Gateway
+
+  # =======================
+  # GATEWAY (KEEP)
+  # =======================
   gateway:
     build:
       context: ./gateway
@@ -71,190 +73,147 @@ services:
     networks:
       - studybuddy-network
 
-  # User Service
+
+  # =======================
+  # USER SERVICE (session branch)
+  # =======================
   user-service:
-    build:
-      context: ./services/user-service
-      dockerfile: Dockerfile
+    build: ./services/user-service
     ports:
       - "4001:4001"
     environment:
       PORT: 4001
       SERVICE_NAME: user-service
-      DATABASE_URL: postgresql://studybuddy:studybuddy123@postgres:5432/studybuddy
+      DATABASE_URL: postgresql://neondb_owner:npg_a7hwVX5msfHg@ep-wandering-shadow-anmfx1jj.c-6.us-east-1.aws.neon.tech/User_db?sslmode=require
       KAFKA_BROKER: kafka:29092
       NODE_ENV: development
     depends_on:
-      postgres:
-        condition: service_healthy
       kafka:
         condition: service_started
     networks:
       - studybuddy-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4001/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
-  # Availability Service
+
+  # =======================
+  # AVAILABILITY SERVICE (MERGED FIXED)
+  # =======================
   availability-service:
-    build:
-      context: ./services/availability-service
-      dockerfile: Dockerfile
+    build: ./services/availability-service
     ports:
       - "4002:4002"
     environment:
       PORT: 4002
       SERVICE_NAME: availability-service
-      DATABASE_URL: postgresql://studybuddy:studybuddy123@postgres:5432/studybuddy
+      DATABASE_URL: postgresql://neondb_owner:npg_a7hwVX5msfHg@ep-wandering-shadow-anmfx1jj.c-6.us-east-1.aws.neon.tech/Availability_db?sslmode=require&channel_binding=require
       KAFKA_BROKER: kafka:29092
+      JWT_SECRET: your-secret-key-here
       NODE_ENV: development
     depends_on:
-      postgres:
-        condition: service_healthy
       kafka:
         condition: service_started
     networks:
       - studybuddy-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4002/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
-  # Matching Service
+
+  # =======================
+  # MATCHING SERVICE (session)
+  # =======================
   matching-service:
-    build:
-      context: ./services/matching-service
-      dockerfile: Dockerfile
+    build: ./services/matching-service
     ports:
       - "4003:4003"
     environment:
       PORT: 4003
       SERVICE_NAME: matching-service
-      DATABASE_URL: postgresql://studybuddy:studybuddy123@postgres:5432/studybuddy
+      DATABASE_URL: postgresql://neondb_owner:npg_a7hwVX5msfHg@ep-wandering-shadow-anmfx1jj.c-6.us-east-1.aws.neon.tech/Matching_db?sslmode=require
       KAFKA_BROKER: kafka:29092
       NODE_ENV: development
     depends_on:
-      postgres:
-        condition: service_healthy
       kafka:
         condition: service_started
     networks:
       - studybuddy-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4003/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
-  # Messaging Service
+
+  # =======================
+  # MESSAGING SERVICE (session)
+  # =======================
   messaging-service:
-    build:
-      context: ./services/messaging-service
-      dockerfile: Dockerfile
+    build: ./services/messaging-service
     ports:
       - "4004:4004"
     environment:
       PORT: 4004
       SERVICE_NAME: messaging-service
-      DATABASE_URL: postgresql://studybuddy:studybuddy123@postgres:5432/studybuddy
+      DATABASE_URL: postgresql://neondb_owner:npg_a7hwVX5msfHg@ep-wandering-shadow-anmfx1jj.c-6.us-east-1.aws.neon.tech/Messaging_db?sslmode=require
       KAFKA_BROKER: kafka:29092
       NODE_ENV: development
     depends_on:
-      postgres:
-        condition: service_healthy
       kafka:
         condition: service_started
     networks:
       - studybuddy-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4004/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
-  # Notification Service
+
+  # =======================
+  # NOTIFICATION SERVICE (MERGED)
+  # =======================
   notification-service:
-    build:
-      context: ./services/notification-service
-      dockerfile: Dockerfile
+    build: ./services/notification-service
     ports:
       - "4005:4005"
     environment:
       PORT: 4005
       SERVICE_NAME: notification-service
-      DATABASE_URL: postgresql://studybuddy:studybuddy123@postgres:5432/studybuddy
+      DATABASE_URL: "postgresql://neondb_owner:npg_a7hwVX5msfHg@ep-wandering-shadow-anmfx1jj-pooler.c-6.us-east-1.aws.neon.tech/Notification_db?sslmode=require"
       KAFKA_BROKER: kafka:29092
       NODE_ENV: development
     depends_on:
-      postgres:
-        condition: service_healthy
       kafka:
-        condition: service_started
+        condition: service_healthy
     networks:
       - studybuddy-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4005/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
-  # Profile Service
+
+  # =======================
+  # PROFILE SERVICE (MERGED FIXED PORT)
+  # =======================
   profile-service:
-    build:
-      context: ./services/profile-service
-      dockerfile: Dockerfile
+    build: ./services/profile-service
     ports:
       - "4006:4006"
     environment:
       PORT: 4006
       SERVICE_NAME: profile-service
-      DATABASE_URL: postgresql://studybuddy:studybuddy123@postgres:5432/studybuddy
+      DATABASE_URL: "postgresql://neondb_owner:npg_a7hwVX5msfHg@ep-wandering-shadow-anmfx1jj-pooler.c-6.us-east-1.aws.neon.tech/Profile%20and%20Study%20Preferences_db?sslmode=require"
       KAFKA_BROKER: kafka:29092
       NODE_ENV: development
     depends_on:
-      postgres:
-        condition: service_healthy
       kafka:
-        condition: service_started
+        condition: service_healthy
     networks:
       - studybuddy-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4006/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
-  # Session Service
+
+  # =======================
+  # SESSION SERVICE (session branch)
+  # =======================
   session-service:
-    build:
-      context: ./services/session-service
-      dockerfile: Dockerfile
+    build: ./services/session-service
     ports:
       - "4007:4007"
     environment:
       PORT: 4007
       SERVICE_NAME: session-service
-      DATABASE_URL: postgresql://studybuddy:studybuddy123@postgres:5432/studybuddy
+      DATABASE_URL: postgresql://neondb_owner:npg_a7hwVX5msfHg@ep-wandering-shadow-anmfx1jj.c-6.us-east-1.aws.neon.tech/Session_db?sslmode=require
       KAFKA_BROKER: kafka:29092
       NODE_ENV: development
     depends_on:
-      postgres:
-        condition: service_healthy
       kafka:
         condition: service_started
     networks:
       - studybuddy-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4007/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
-volumes:
-  postgres_data:
 
 networks:
   studybuddy-network:
