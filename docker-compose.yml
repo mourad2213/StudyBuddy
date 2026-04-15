@@ -48,7 +48,8 @@ services:
       DATABASE_URL: "postgresql://neondb_owner:npg_a7hwVX5msfHg@ep-wandering-shadow-anmfx1jj-pooler.c-6.us-east-1.aws.neon.tech/Notification_db?sslmode=require&channel_binding=require"
       DIRECT_URL: "postgresql://neondb_owner:npg_a7hwVX5msfHg@ep-wandering-shadow-anmfx1jj.c-6.us-east-1.aws.neon.tech/Notification_db?sslmode=require&channel_binding=require"
       KAFKA_BROKER: kafka:29092
-
+    
+  
   profile-service:
     build: ./services/profile-service
     container_name: profile-service
