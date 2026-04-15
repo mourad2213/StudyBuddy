@@ -1,0 +1,46 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Profile {
+  id             String @id @default(cuid())
+  userId         String @unique
+  major          String?
+  academicYear   String?
+  bio            String?
+
+  courses        Course[]
+  topics         Topic[]
+  preferences    Preference?
+}
+
+model Course {
+  id        String   @id @default(uuid())
+  name      String
+  profile   Profile  @relation(fields: [profileId], references: [id])
+  profileId String
+}
+
+model Topic {
+  id        String   @id @default(uuid())
+  name      String
+  profile   Profile  @relation(fields: [profileId], references: [id])
+  profileId String
+}
+
+model Preference {
+  id         String  @id @default(uuid())
+  pace       String?
+  mode       String?
+  groupSize  Int?
+  style      String?
+
+  profile    Profile @relation(fields: [profileId], references: [id])
+  profileId  String  @unique
+}
