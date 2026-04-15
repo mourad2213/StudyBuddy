@@ -1,0 +1,38 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model MatchRecommendation {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  candidateId String    @map("candidate_id")
+  score       Int
+  reasons     Json
+  isAccepted  Boolean?  @map("is_accepted")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@unique([userId, candidateId])
+  @@index([userId])
+  @@index([score])
+  @@map("match_recommendation")
+}
+
+model CachedUserData {
+  id           String   @id @map("user_id")
+  courses      String[]
+  topics       String[]
+  studyPace    String   @map("study_pace")
+  studyMode    String   @map("study_mode")
+  groupSize    Int      @map("group_size")
+  studyStyle   String   @map("study_style")
+  availability Json
+  lastUpdated  DateTime @default(now()) @map("last_updated")
+
+  @@map("cached_user_data")
+}
