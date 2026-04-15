@@ -10,6 +10,11 @@ services:
       - "2181:2181"
 
   kafka:
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "kafka:29092", "--list"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
     image: confluentinc/cp-kafka:7.5.0
     container_name: kafka
     restart: unless-stopped
@@ -38,7 +43,7 @@ services:
       - "4005:4005"
     depends_on:
         kafka: 
-          condition: service_started
+          condition: service_healthy
     environment:
       DATABASE_URL: "postgresql://neondb_owner:npg_a7hwVX5msfHg@ep-wandering-shadow-anmfx1jj-pooler.c-6.us-east-1.aws.neon.tech/Notification_db?sslmode=require&channel_binding=require"
       DIRECT_URL: "postgresql://neondb_owner:npg_a7hwVX5msfHg@ep-wandering-shadow-anmfx1jj.c-6.us-east-1.aws.neon.tech/Notification_db?sslmode=require&channel_binding=require"
@@ -53,7 +58,7 @@ services:
       - "4000:4000"
     depends_on:
       kafka:
-        condition: service_started
+        condition: service_healthy
     environment:
       DATABASE_URL: "postgresql://neondb_owner:npg_a7hwVX5msfHg@ep-wandering-shadow-anmfx1jj-pooler.c-6.us-east-1.aws.neon.tech/Profile%20and%20Study%20Preferences_db?sslmode=require&channel_binding=require"
       DIRECT_URL:  "postgresql://neondb_owner:npg_a7hwVX5msfHg@ep-wandering-shadow-anmfx1jj.c-6.us-east-1.aws.neon.tech/Profile%20and%20Study%20Preferences_db?sslmode=require&channel_binding=require"

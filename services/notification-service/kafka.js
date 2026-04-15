@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 const kafka = new Kafka({
   clientId: "notification-service",
-  brokers: [process.env.KAFKA_BROKER || "kafka:9092"],
+  brokers: [process.env.KAFKA_BROKER],
 });
 
 const consumer = kafka.consumer({ groupId: "notification-group" });
