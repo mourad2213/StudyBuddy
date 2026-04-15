@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Profile" ALTER COLUMN "major" DROP NOT NULL,
+ALTER COLUMN "academicYear" DROP NOT NULL;
