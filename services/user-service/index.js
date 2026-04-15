@@ -18,8 +18,10 @@ const server = new ApolloServer({
 await server.start();
 server.applyMiddleware({ app }); //Mount GraphQL endpoint , this creates the localhost:4000/graphql endpoint where we can send our queries and mutations
 
-app.listen(5000, () => {
-  console.log("User service running on port 5000");
+const PORT = process.env.PORT || 4000;
+
+app.listen(PORT, () => {
+  console.log(`User service running on port ${PORT}`);
 }); // start the server on port 5000
 
 try {

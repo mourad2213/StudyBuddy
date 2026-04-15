@@ -9,7 +9,7 @@ let producer;
 
 const initKafka = () => {
   client = new KafkaClient({
-    kafkaHost: process.env.KAFKA_HOST || 'localhost:9092',
+    kafkaHost: process.env.KAFKA_BROKER || 'kafka:29092' ,
     connectTimeout: 10000,
     requestTimeout: 30000,
   });

@@ -88,9 +88,11 @@ async function startServer() {
   // start kafka
 runConsumer();
 
-  app.listen(4005, () => {
-    console.log("🚀 Notification service running on port 4005");
+  const PORT = process.env.PORT || 4005;
+
+  app.listen(PORT, () => {
+      console.log(`🚀 GraphQL running at http://localhost:${PORT}/graphql`);
   });
-}
+  }
 
 startServer();

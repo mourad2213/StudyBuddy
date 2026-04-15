@@ -1,7 +1,5 @@
-version: '3.8'
 
 services:
-
   # =======================
   # ZOOKEEPER
   # =======================
@@ -42,34 +40,11 @@ services:
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
 
     healthcheck:
-      test: ["CMD", "kafka-topics", "--bootstrap-server", "kafka:29092", "--list"]
+      test:
+        ["CMD", "kafka-topics", "--bootstrap-server", "kafka:29092", "--list"]
       interval: 10s
       timeout: 10s
       retries: 10
-    networks:
-      - studybuddy-network
-
-
-  # =======================
-  # GATEWAY (KEEP)
-  # =======================
-  gateway:
-    build:
-      context: ./gateway
-      dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
-    environment:
-      PORT: 3000
-      SERVICE_NAME: gateway
-    depends_on:
-      - user-service
-      - availability-service
-      - matching-service
-      - messaging-service
-      - notification-service
-      - profile-service
-      - session-service
     networks:
       - studybuddy-network
 
@@ -89,10 +64,9 @@ services:
       NODE_ENV: development
     depends_on:
       kafka:
-        condition: service_started
+        condition: service_healthy
     networks:
       - studybuddy-network
-
 
   # =======================
   # AVAILABILITY SERVICE (MERGED FIXED)
@@ -110,30 +84,28 @@ services:
       NODE_ENV: development
     depends_on:
       kafka:
-        condition: service_started
+        condition: service_healthy
     networks:
       - studybuddy-network
-
 
   # =======================
   # MATCHING SERVICE (session)
   # =======================
-  matching-service:
-    build: ./services/matching-service
-    ports:
-      - "4003:4003"
-    environment:
-      PORT: 4003
-      SERVICE_NAME: matching-service
-      DATABASE_URL: postgresql://neondb_owner:npg_a7hwVX5msfHg@ep-wandering-shadow-anmfx1jj.c-6.us-east-1.aws.neon.tech/Matching_db?sslmode=require
-      KAFKA_BROKER: kafka:29092
-      NODE_ENV: development
-    depends_on:
-      kafka:
-        condition: service_started
-    networks:
-      - studybuddy-network
-
+  # matching-service:
+  #   build: ./services/matching-service
+  #   ports:
+  #     - "4003:4003"
+  #   environment:
+  #     PORT: 4003
+  #     SERVICE_NAME: matching-service
+  #     DATABASE_URL: postgresql://neondb_owner:npg_a7hwVX5msfHg@ep-wandering-shadow-anmfx1jj.c-6.us-east-1.aws.neon.tech/Matching_db?sslmode=require
+  #     KAFKA_BROKER: kafka:29092
+  #     NODE_ENV: development
+  #   depends_on:
+  #     kafka:
+  #       condition: service_healthy
+  #   networks:
+  #     - studybuddy-network
 
   # =======================
   # MESSAGING SERVICE (session)
@@ -150,10 +122,9 @@ services:
       NODE_ENV: development
     depends_on:
       kafka:
-        condition: service_started
+        condition: service_healthy
     networks:
       - studybuddy-network
-
 
   # =======================
   # NOTIFICATION SERVICE (MERGED)
@@ -174,7 +145,6 @@ services:
     networks:
       - studybuddy-network
 
-
   # =======================
   # PROFILE SERVICE (MERGED FIXED PORT)
   # =======================
@@ -194,7 +164,6 @@ services:
     networks:
       - studybuddy-network
 
-
   # =======================
   # SESSION SERVICE (session branch)
   # =======================
@@ -210,10 +179,9 @@ services:
       NODE_ENV: development
     depends_on:
       kafka:
-        condition: service_started
+        condition: service_healthy
     networks:
       - studybuddy-network
-
 
 networks:
   studybuddy-network:
