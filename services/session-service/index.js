@@ -261,6 +261,69 @@ async function startServer() {
     }
   });
 
+  // Update a session
+  app.put("/api/sessions/:sessionId", async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      const { userId, topic, startTime, endTime, sessionType, location, contactInfo } = req.body;
+
+      const existingSession = await prisma.studySession.findUnique({
+        where: { id: sessionId },
+      });
+
+      if (!existingSession) {
+        return res.status(404).json({ error: "Session not found" });
+      }
+
+      // Only the creator can update the session
+      if (existingSession.creatorId !== userId) {
+        return res.status(403).json({ error: "Only the session creator can update the session" });
+      }
+
+      const startDate = startTime ? new Date(startTime) : existingSession.dateTime;
+      const endDate = endTime ? new Date(endTime) : null;
+      
+      const durationMins = endDate 
+        ? Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / 60000))
+        : existingSession.durationMins;
+
+      const updatedSession = await prisma.studySession.update({
+        where: { id: sessionId },
+        data: {
+          topic: topic || existingSession.topic,
+          sessionType: sessionType || existingSession.sessionType,
+          location: location !== undefined ? location : existingSession.location,
+          dateTime: startDate,
+          durationMins,
+          contactInfo: contactInfo !== undefined ? contactInfo : existingSession.contactInfo,
+          updatedAt: new Date(),
+        },
+      });
+
+      try {
+        await publishMessage("study-events", {
+          key: userId,
+          value: JSON.stringify({
+            event: "SESSION_UPDATED",
+            payload: {
+              userId,
+              sessionId: updatedSession.id,
+              data: updatedSession,
+            },
+            timestamp: new Date().toISOString(),
+          }),
+        });
+      } catch (publishError) {
+        console.warn("Kafka session update publish failed:", publishError.message);
+      }
+
+      res.json({ success: true, data: updatedSession });
+    } catch (error) {
+      console.error("Error updating session:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Assign a participant to a session.
   app.post("/api/sessions/:sessionId/participants", async (req, res) => {
     try {
@@ -388,6 +451,61 @@ async function startServer() {
       res.json({ success: true, data: participant });
     } catch (error) {
       console.error("Error responding to invite:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Leave a session (cancel participation)
+  app.delete("/api/sessions/:sessionId/participants/:userId", async (req, res) => {
+    try {
+      const { sessionId, userId } = req.params;
+
+      const existingParticipant = await prisma.sessionParticipant.findUnique({
+        where: {
+          sessionId_userId: {
+            sessionId,
+            userId,
+          },
+        },
+      });
+
+      if (!existingParticipant) {
+        return res.status(404).json({ error: "Participant not found in session" });
+      }
+
+      // Don't allow hosts to leave their own sessions
+      if (existingParticipant.role === "HOST") {
+        return res.status(400).json({ error: "Session host cannot leave their own session" });
+      }
+
+      await prisma.sessionParticipant.delete({
+        where: {
+          sessionId_userId: {
+            sessionId,
+            userId,
+          },
+        },
+      });
+
+      try {
+        await publishMessage("study-events", {
+          key: userId,
+          value: JSON.stringify({
+            event: "SESSION_LEFT",
+            payload: {
+              sessionId,
+              userId,
+            },
+            timestamp: new Date().toISOString(),
+          }),
+        });
+      } catch (publishError) {
+        console.warn("Kafka leave session publish failed:", publishError.message);
+      }
+
+      res.json({ success: true, message: "Successfully left the session" });
+    } catch (error) {
+      console.error("Error leaving session:", error);
       res.status(500).json({ error: error.message });
     }
   });

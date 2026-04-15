@@ -66,16 +66,28 @@ async function handleEvent(topic, event) {
       await produceRecommendationsEvent(recommendations, payload.userId);
       break;
 
+    case MATCHING_EVENTS.AVAILABILITY_CREATED:
     case MATCHING_EVENTS.AVAILABILITY_UPDATED:
+    case MATCHING_EVENTS.AVAILABILITY_DELETED:
       console.log(`Processing availability update for user: ${payload.userId}`);
       const existingUser = await prisma.cachedUserData.findUnique({
         where: { id: payload.userId },
       });
       
       if (existingUser) {
+        const allAvailability = await prisma.availability.findMany({
+          where: { userId: payload.userId },
+        });
+        
+        const formattedAvailability = allAvailability.map(a => ({
+          day: a.dayOfWeek,
+          start: a.startTime,
+          end: a.endTime,
+        }));
+        
         await cacheUserData(payload.userId, {
           ...existingUser,
-          availability: payload.availability,
+          availability: formattedAvailability,
         });
         const availRecs = await generateAndStoreRecommendations(payload.userId);
         await produceRecommendationsEvent(availRecs, payload.userId);

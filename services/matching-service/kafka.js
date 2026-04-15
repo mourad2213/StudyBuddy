@@ -12,7 +12,9 @@ const consumer = kafka.consumer({ groupId: 'matching-service-group' });
 
 export const MATCHING_EVENTS = {
   USER_PREFERENCES_UPDATED: 'UserPreferencesUpdated',
+  AVAILABILITY_CREATED: 'AvailabilityCreated',
   AVAILABILITY_UPDATED: 'AvailabilityUpdated',
+  AVAILABILITY_DELETED: 'AvailabilityDeleted',
   BUDDY_REQUEST_CREATED: 'BuddyRequestCreated',
   MATCH_FOUND: 'MatchFound',
   RECOMMENDATIONS_GENERATED: 'RecommendationsGenerated',
@@ -33,7 +35,9 @@ export async function connectConsumer() {
 
 export async function subscribeToEvents() {
   await consumer.subscribe({ topic: MATCHING_EVENTS.USER_PREFERENCES_UPDATED, fromBeginning: false });
+  await consumer.subscribe({ topic: MATCHING_EVENTS.AVAILABILITY_CREATED, fromBeginning: false });
   await consumer.subscribe({ topic: MATCHING_EVENTS.AVAILABILITY_UPDATED, fromBeginning: false });
+  await consumer.subscribe({ topic: MATCHING_EVENTS.AVAILABILITY_DELETED, fromBeginning: false });
   await consumer.subscribe({ topic: MATCHING_EVENTS.BUDDY_REQUEST_CREATED, fromBeginning: false });
   console.log('Matching service subscribed to events');
 }

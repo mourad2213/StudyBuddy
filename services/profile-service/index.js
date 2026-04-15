@@ -138,43 +138,67 @@ const resolvers = {
                 data: { profileId, name }
             });
 
+            // Fetch complete user data
             const profile = await prisma.profile.findUnique({
-                where: { id: profileId }
+                where: { id: profileId },
+                include: {
+                    courses: true,
+                    topics: true,
+                    preferences: true
+                }
             });
 
             if (!profile) {
                 throw new Error("Profile not found");
             }
 
-            await sendEvent("CourseUpdated", {
+            // Format data for matching service
+            const userData = {
                 userId: profile.userId,
-                profileId,
-                name
-            });
+                courses: profile.courses.map(c => c.name),
+                topics: profile.topics.map(t => t.name),
+                studyPace: profile.preferences?.pace,
+                studyMode: profile.preferences?.mode,
+                groupSize: profile.preferences?.groupSize,
+                studyStyle: profile.preferences?.style,
+            };
+
+            await sendEvent("UserPreferencesUpdated", userData);
 
             return course;
         },
 
         updateCourse: async (_, { id, name }) => {
-            const course = await prisma.course.findUnique({
-                where: { id },
-                include: { profile: true }
-            });
-
-            if (!course || !course.profile) {
-                throw new Error("Course or profile not found");
-            }
-
             const updated = await prisma.course.update({
                 where: { id },
-                data: { name }
+                data: { name },
+                include: {
+                    profile: {
+                        include: {
+                            courses: true,
+                            topics: true,
+                            preferences: true
+                        }
+                    }
+                }
             });
 
-            await sendEvent("CourseUpdated", {
-                userId: course.profile.userId,
-                id,
-                name
-            });
+            if (!updated.profile) {
+                throw new Error("Profile not found");
+            }
+
+            // Format data for matching service
+            const userData = {
+                userId: updated.profile.userId,
+                courses: updated.profile.courses.map(c => c.name),
+                topics: updated.profile.topics.map(t => t.name),
+                studyPace: updated.profile.preferences?.pace,
+                studyMode: updated.profile.preferences?.mode,
+                groupSize: updated.profile.preferences?.groupSize,
+                studyStyle: updated.profile.preferences?.style,
+            };
+
+            await sendEvent("UserPreferencesUpdated", userData);
 
             return updated;
         },
@@ -184,19 +208,32 @@ const resolvers = {
                 data: { profileId, name }
             });
 
+            // Fetch complete user data
             const profile = await prisma.profile.findUnique({
-                where: { id: profileId }
+                where: { id: profileId },
+                include: {
+                    courses: true,
+                    topics: true,
+                    preferences: true
+                }
             });
 
             if (!profile) {
                 throw new Error("Profile not found");
             }
 
-            await sendEvent("TopicUpdated", {
+            // Format data for matching service
+            const userData = {
                 userId: profile.userId,
-                profileId,
-                name
-            });
+                courses: profile.courses.map(c => c.name),
+                topics: profile.topics.map(t => t.name),
+                studyPace: profile.preferences?.pace,
+                studyMode: profile.preferences?.mode,
+                groupSize: profile.preferences?.groupSize,
+                studyStyle: profile.preferences?.style,
+            };
+
+            await sendEvent("UserPreferencesUpdated", userData);
 
             return topic;
         },
@@ -207,18 +244,33 @@ const resolvers = {
                     data: args
                 });
 
+                // Fetch complete user data
                 const profile = await prisma.profile.findUnique({
-                    where: { id: args.profileId }
+                    where: { id: args.profileId },
+                    include: {
+                        courses: true,
+                        topics: true,
+                        preferences: true
+                    }
                 });
 
                 if (!profile) {
                     throw new Error("Profile not found");
                 }
 
-                await sendEvent("UserPreferencesUpdated", {
+                // Format data for matching service
+                const userData = {
                     userId: profile.userId,
-                    ...pref
-                });
+                    courses: profile.courses.map(c => c.name),
+                    topics: profile.topics.map(t => t.name),
+                    studyPace: pref.pace,
+                    studyMode: pref.mode,
+                    groupSize: pref.groupSize,
+                    studyStyle: pref.style,
+                    // Note: availability comes from availability service
+                };
+
+                await sendEvent("UserPreferencesUpdated", userData);
 
                 return pref;
             } catch (error) {
@@ -236,19 +288,33 @@ const resolvers = {
                 create: { profileId, ...data }
             });
 
+            // Fetch complete user data
             const profile = await prisma.profile.findUnique({
-                where: { id: profileId }
+                where: { id: profileId },
+                include: {
+                    courses: true,
+                    topics: true,
+                    preferences: true
+                }
             });
 
             if (!profile) {
                 throw new Error("Profile not found");
             }
 
-            await sendEvent("UserPreferencesUpdated", {
+            // Format data for matching service
+            const userData = {
                 userId: profile.userId,
-                profileId,
-                ...data
-            });
+                courses: profile.courses.map(c => c.name),
+                topics: profile.topics.map(t => t.name),
+                studyPace: updated.pace,
+                studyMode: updated.mode,
+                groupSize: updated.groupSize,
+                studyStyle: updated.style,
+                // Note: availability comes from availability service
+            };
+
+            await sendEvent("UserPreferencesUpdated", userData);
 
             return updated;
         }

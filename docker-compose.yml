@@ -96,9 +96,9 @@ services:
     build: ./services/matching-service
     container_name: matching-service
     ports:
-      - "4004:4004"
+      - "4003:4003"
     environment:
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=postgresql://neondb_owner:npg_a7hwVX5msfHg@ep-wandering-shadow-anmfx1jj-pooler.c-6.us-east-1.aws.neon.tech/Matching_db?sslmode=require&channel_binding=require
       - KAFKA_BROKERS=kafka:29092
       - PORT=4004
       - KAFKAJS_NO_PARTITIONER_WARNING=1

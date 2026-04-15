@@ -29,27 +29,31 @@ const runConsumer = async () => {
     }
   }
 
+  // Subscribe to multiple topics
   await consumer.subscribe({
     topic: "study-events",
     fromBeginning: false,
   });
 
+  await consumer.subscribe({
+    topic: "RecommendationsGenerated",
+    fromBeginning: false,
+  });
+
+  await consumer.subscribe({
+    topic: "BuddyRequestCreated",
+    fromBeginning: false,
+  });
+
   await consumer.run({
-    eachMessage: async ({ message }) => {
+    eachMessage: async ({ topic, message }) => {
       const event = JSON.parse(message.value.toString());
       console.log("📩 RECEIVED EVENT:", event);
 
-      switch (event.event) {
-        case "MATCH_FOUND":
-          await prisma.notification.create({
-            data: {
-              userId: event.payload.userId,
-              message: "You have a new compatible study partner!",
-              type: "MATCH_FOUND",
-            },
-          });
-          break;
+      // Handle different event structures
+      const eventType = event.eventName || event.event;
 
+      switch (eventType) {
         case "SESSION_CREATED":
           await prisma.notification.create({
             data: {
@@ -80,11 +84,21 @@ const runConsumer = async () => {
           });
           break;
 
-        case "BUDDY_REQUEST_RECEIVED":
+        case "RecommendationsGenerated":
           await prisma.notification.create({
             data: {
               userId: event.payload.userId,
-              message: "You received a new buddy request.",
+              message: `You have ${event.payload.recommendations.length} new study buddy recommendations!`,
+              type: "NEW_RECOMMENDATIONS",
+            },
+          });
+          break;
+
+        case "BuddyRequestCreated":
+          await prisma.notification.create({
+            data: {
+              userId: event.payload.toUserId,
+              message: "Someone wants to study with you! Check your buddy requests.",
               type: "BUDDY_REQUEST_RECEIVED",
             },
           });
@@ -101,7 +115,7 @@ const runConsumer = async () => {
           break;
 
         default:
-          console.log(`⚠️ Unknown event type: ${event.event}`);
+          console.log(`⚠️ Unknown event type: ${eventType}`);
       }
     },
   });
