@@ -1,0 +1,31 @@
+{
+  "name": "matching-service",
+  "version": "1.0.0",
+  "description": "Matching Service for Study Buddy Matcher",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev"
+  },
+  "keywords": [
+    "study-buddy",
+    "matching",
+    "microservice"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@apollo/server": "^5.5.0",
+    "@prisma/client": "^5.22.0",
+    "dotenv": "^16.6.1",
+    "graphql": "^16.13.2",
+    "kafkajs": "^2.2.4"
+  },
+  "devDependencies": {
+    "prisma": "^5.10.0"
+  }
+}
