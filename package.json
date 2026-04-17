@@ -20,12 +20,12 @@
   "homepage": "https://github.com/mourad2213/StudyBuddy#readme",
   "dependencies": {
     "@apollo/server": "^5.5.0",
-    "@prisma/client": "^7.7.0",
+    "@prisma/client": "^6.6.0",
     "dotenv": "^17.4.2",
     "graphql": "^16.13.2",
     "kafkajs": "^2.2.4"
   },
   "devDependencies": {
-    "prisma": "^6.19.3"
+    "prisma": "^6.6.0"
   }
 }

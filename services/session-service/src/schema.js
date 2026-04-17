@@ -13,10 +13,17 @@ const typeDefs = gql`
     MEMBER
   }
 
+  enum ParticipantStatus {
+    PENDING
+    ACCEPTED
+    REJECTED
+  }
+
   type SessionParticipant {
     id: ID!
     userId: String!
     role: ParticipantRole!
+    inviteStatus: ParticipantStatus!
     joinedAt: DateTime!
   }
 
@@ -34,6 +41,12 @@ const typeDefs = gql`
     participants: [SessionParticipant!]!
   }
 
+  type AcceptedMember {
+    userId: String!
+    role: ParticipantRole!
+    joinedAt: DateTime!
+  }
+
   input CreateStudySessionInput {
     topic: String!
     sessionType: SessionType!
@@ -42,16 +55,20 @@ const typeDefs = gql`
     durationMins: Int!
     creatorId: String!
     contactInfo: String
+    possibleMemberIds: [String!]!
   }
 
   type Query {
     upcomingSessions(userId: String!): [StudySession!]!
     pastSessions(userId: String!): [StudySession!]!
     sessionById(id: ID!): StudySession
+    getSessionAcceptedMembers(sessionId: ID!): [AcceptedMember!]!
+    getPendingInvitations(userId: String!): [StudySession!]!
   }
 
   type Mutation {
     createStudySession(input: CreateStudySessionInput!): StudySession!
+    respondToSessionInvitation(sessionId: ID!, userId: String!, status: ParticipantStatus!): SessionParticipant!
     joinSession(sessionId: ID!, userId: String!): StudySession!
     leaveSession(sessionId: ID!, userId: String!): StudySession!
     cancelSession(id: ID!, requesterId: String!): Boolean!
