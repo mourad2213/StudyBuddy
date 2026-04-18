@@ -30,10 +30,18 @@ export const userResolvers = {
 
       const decoded = jwt.verify(token, JWT_SECRET);
 
-      return prisma.user.update({
+      const updatedUser = await prisma.user.update({
         where: { id: decoded.userId },
         data: args,
       });
+
+      try {
+        await sendEvent("UserUpdated", updatedUser);
+      } catch (err) {
+        console.log("Kafka not available, skipping event");
+      }
+
+      return updatedUser;
     },
   },
 };

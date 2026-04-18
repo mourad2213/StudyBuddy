@@ -5,11 +5,7 @@ const { randomUUID } = require("crypto");
 const { PrismaClient } = require("@prisma/client");
 const cors = require("cors");
 
-const {
-  initializeKafka,
-  publishMessage,
-  disconnectKafka,
-} = require("./kafka");
+const { initializeKafka, publishMessage, disconnectKafka } = require("./kafka");
 
 const prisma = new PrismaClient();
 const port = Number(process.env.PORT || 4007);
@@ -56,7 +52,10 @@ async function startServer() {
   try {
     await initializeKafka();
   } catch (error) {
-    console.warn("Kafka initialization failed. Service will continue without Kafka:", error.message);
+    console.warn(
+      "Kafka initialization failed. Service will continue without Kafka:",
+      error.message,
+    );
   }
 
   app.use(cors());
@@ -165,16 +164,24 @@ async function startServer() {
       const startDate = new Date(startTime);
       const endDate = new Date(endTime);
 
-      if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+      if (
+        Number.isNaN(startDate.getTime()) ||
+        Number.isNaN(endDate.getTime())
+      ) {
         return res.status(400).json({ error: "Invalid startTime or endTime" });
       }
 
-      const durationMins = Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / 60000));
-      const participantsToInvite = extractPossibleParticipants(possibleParticipants)
+      const durationMins = Math.max(
+        1,
+        Math.round((endDate.getTime() - startDate.getTime()) / 60000),
+      );
+      const participantsToInvite = extractPossibleParticipants(
+        possibleParticipants,
+      )
         .filter((participant) => participant.userId !== userId)
         .filter(
           (participant, index, list) =>
-            list.findIndex((p) => p.userId === participant.userId) === index
+            list.findIndex((p) => p.userId === participant.userId) === index,
         );
 
       const session = await prisma.studySession.create({
@@ -187,6 +194,7 @@ async function startServer() {
           durationMins,
           creatorId: userId,
           contactInfo,
+          updatedAt: new Date(),   // ← add this line
         },
       });
 
@@ -219,17 +227,20 @@ async function startServer() {
         await publishMessage("study-events", {
           key: userId,
           value: JSON.stringify({
-          event: "SESSION_CREATED",
-          payload: {
-            userId,
-            sessionId: session.id,
-            data: session
-          },
-          timestamp: new Date().toISOString()
-        }),
+            event: "SESSION_CREATED",
+            payload: {
+              userId,
+              sessionId: session.id,
+              data: session,
+            },
+            timestamp: new Date().toISOString(),
+          }),
         });
       } catch (publishError) {
-        console.warn("Kafka publish failed, session saved anyway:", publishError.message);
+        console.warn(
+          "Kafka publish failed, session saved anyway:",
+          publishError.message,
+        );
       }
 
       if (participantsToInvite.length > 0) {
@@ -239,15 +250,16 @@ async function startServer() {
             participantsToInvite.map((participant) => ({
               key: participant.userId,
               value: JSON.stringify({
-              event: "SESSION_INVITATION_RECEIVED",
-              payload: {
-                sessionId: session.id,
-                hostUserId: userId,
-                userId: participant.userId,
-                role: normalizeParticipantRole(participant.role)
-              },
-              timestamp: new Date().toISOString()}),
-            }))
+                event: "SESSION_INVITATION_RECEIVED",
+                payload: {
+                  sessionId: session.id,
+                  hostUserId: userId,
+                  userId: participant.userId,
+                  role: normalizeParticipantRole(participant.role),
+                },
+                timestamp: new Date().toISOString(),
+              }),
+            })),
           );
         } catch (publishError) {
           console.warn("Kafka invite publish failed:", publishError.message);
@@ -265,7 +277,15 @@ async function startServer() {
   app.put("/api/sessions/:sessionId", async (req, res) => {
     try {
       const { sessionId } = req.params;
-      const { userId, topic, startTime, endTime, sessionType, location, contactInfo } = req.body;
+      const {
+        userId,
+        topic,
+        startTime,
+        endTime,
+        sessionType,
+        location,
+        contactInfo,
+      } = req.body;
 
       const existingSession = await prisma.studySession.findUnique({
         where: { id: sessionId },
@@ -277,14 +297,21 @@ async function startServer() {
 
       // Only the creator can update the session
       if (existingSession.creatorId !== userId) {
-        return res.status(403).json({ error: "Only the session creator can update the session" });
+        return res
+          .status(403)
+          .json({ error: "Only the session creator can update the session" });
       }
 
-      const startDate = startTime ? new Date(startTime) : existingSession.dateTime;
+      const startDate = startTime
+        ? new Date(startTime)
+        : existingSession.dateTime;
       const endDate = endTime ? new Date(endTime) : null;
-      
-      const durationMins = endDate 
-        ? Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / 60000))
+
+      const durationMins = endDate
+        ? Math.max(
+            1,
+            Math.round((endDate.getTime() - startDate.getTime()) / 60000),
+          )
         : existingSession.durationMins;
 
       const updatedSession = await prisma.studySession.update({
@@ -292,10 +319,14 @@ async function startServer() {
         data: {
           topic: topic || existingSession.topic,
           sessionType: sessionType || existingSession.sessionType,
-          location: location !== undefined ? location : existingSession.location,
+          location:
+            location !== undefined ? location : existingSession.location,
           dateTime: startDate,
           durationMins,
-          contactInfo: contactInfo !== undefined ? contactInfo : existingSession.contactInfo,
+          contactInfo:
+            contactInfo !== undefined
+              ? contactInfo
+              : existingSession.contactInfo,
           updatedAt: new Date(),
         },
       });
@@ -314,7 +345,10 @@ async function startServer() {
           }),
         });
       } catch (publishError) {
-        console.warn("Kafka session update publish failed:", publishError.message);
+        console.warn(
+          "Kafka session update publish failed:",
+          publishError.message,
+        );
       }
 
       res.json({ success: true, data: updatedSession });
@@ -367,14 +401,14 @@ async function startServer() {
         await publishMessage("study-events", {
           key: userId,
           value: JSON.stringify({
-        event: "SESSION_INVITATION_RECEIVED",
-        payload: {
-          sessionId,
-          hostUserId: existingSession.creatorId,
-          userId,
-          role: normalizeParticipantRole(participant.role)
-        },
-        timestamp: new Date().toISOString(),
+            event: "SESSION_INVITATION_RECEIVED",
+            payload: {
+              sessionId,
+              hostUserId: existingSession.creatorId,
+              userId,
+              role: normalizeParticipantRole(participant.role),
+            },
+            timestamp: new Date().toISOString(),
           }),
         });
       } catch (publishError) {
@@ -406,109 +440,125 @@ async function startServer() {
   });
 
   // Accept or decline an invite.
-  app.patch("/api/sessions/:sessionId/participants/:userId/respond", async (req, res) => {
-    try {
-      const { sessionId, userId } = req.params;
-      const { status } = req.body;
-      const inviteStatus = normalizeInviteStatus(status);
-
-      if (inviteStatus === "PENDING") {
-        return res.status(400).json({
-          error: "status must be ACCEPTED or DECLINED",
-        });
-      }
-
-      const participant = await prisma.sessionParticipant.update({
-        where: {
-          sessionId_userId: {
-            sessionId,
-            userId,
-          },
-        },
-        data: {
-          inviteStatus,
-          respondedAt: new Date(),
-        },
-      });
-
+  app.patch(
+    "/api/sessions/:sessionId/participants/:userId/respond",
+    async (req, res) => {
       try {
-        await publishMessage("study-events", {
-          key: userId,
-          value: JSON.stringify({
-            event: "SESSION_INVITATION_RESPONDED",
-            payload: {
+        const { sessionId, userId } = req.params;
+        const { status } = req.body;
+        const inviteStatus = normalizeInviteStatus(status);
+
+        if (inviteStatus === "PENDING") {
+          return res.status(400).json({
+            error: "status must be ACCEPTED or DECLINED",
+          });
+        }
+
+        const participant = await prisma.sessionParticipant.update({
+          where: {
+            sessionId_userId: {
               sessionId,
               userId,
-              status: inviteStatus
             },
-            timestamp: new Date().toISOString(),
-          }),
+          },
+          data: {
+            inviteStatus,
+            respondedAt: new Date(),
+          },
         });
-      } catch (publishError) {
-        console.warn("Kafka invite response publish failed:", publishError.message);
-      }
 
-      res.json({ success: true, data: participant });
-    } catch (error) {
-      console.error("Error responding to invite:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
+        try {
+          await publishMessage("study-events", {
+            key: userId,
+            value: JSON.stringify({
+              event: "SESSION_INVITATION_RESPONDED",
+              payload: {
+                sessionId,
+                userId,
+                status: inviteStatus,
+              },
+              timestamp: new Date().toISOString(),
+            }),
+          });
+        } catch (publishError) {
+          console.warn(
+            "Kafka invite response publish failed:",
+            publishError.message,
+          );
+        }
+
+        res.json({ success: true, data: participant });
+      } catch (error) {
+        console.error("Error responding to invite:", error);
+        res.status(500).json({ error: error.message });
+      }
+    },
+  );
 
   // Leave a session (cancel participation)
-  app.delete("/api/sessions/:sessionId/participants/:userId", async (req, res) => {
-    try {
-      const { sessionId, userId } = req.params;
-
-      const existingParticipant = await prisma.sessionParticipant.findUnique({
-        where: {
-          sessionId_userId: {
-            sessionId,
-            userId,
-          },
-        },
-      });
-
-      if (!existingParticipant) {
-        return res.status(404).json({ error: "Participant not found in session" });
-      }
-
-      // Don't allow hosts to leave their own sessions
-      if (existingParticipant.role === "HOST") {
-        return res.status(400).json({ error: "Session host cannot leave their own session" });
-      }
-
-      await prisma.sessionParticipant.delete({
-        where: {
-          sessionId_userId: {
-            sessionId,
-            userId,
-          },
-        },
-      });
-
+  app.delete(
+    "/api/sessions/:sessionId/participants/:userId",
+    async (req, res) => {
       try {
-        await publishMessage("study-events", {
-          key: userId,
-          value: JSON.stringify({
-            event: "SESSION_LEFT",
-            payload: {
+        const { sessionId, userId } = req.params;
+
+        const existingParticipant = await prisma.sessionParticipant.findUnique({
+          where: {
+            sessionId_userId: {
               sessionId,
               userId,
             },
-            timestamp: new Date().toISOString(),
-          }),
+          },
         });
-      } catch (publishError) {
-        console.warn("Kafka leave session publish failed:", publishError.message);
-      }
 
-      res.json({ success: true, message: "Successfully left the session" });
-    } catch (error) {
-      console.error("Error leaving session:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
+        if (!existingParticipant) {
+          return res
+            .status(404)
+            .json({ error: "Participant not found in session" });
+        }
+
+        // Don't allow hosts to leave their own sessions
+        if (existingParticipant.role === "HOST") {
+          return res
+            .status(400)
+            .json({ error: "Session host cannot leave their own session" });
+        }
+
+        await prisma.sessionParticipant.delete({
+          where: {
+            sessionId_userId: {
+              sessionId,
+              userId,
+            },
+          },
+        });
+
+        try {
+          await publishMessage("study-events", {
+            key: userId,
+            value: JSON.stringify({
+              event: "SESSION_LEFT",
+              payload: {
+                sessionId,
+                userId,
+              },
+              timestamp: new Date().toISOString(),
+            }),
+          });
+        } catch (publishError) {
+          console.warn(
+            "Kafka leave session publish failed:",
+            publishError.message,
+          );
+        }
+
+        res.json({ success: true, message: "Successfully left the session" });
+      } catch (error) {
+        console.error("Error leaving session:", error);
+        res.status(500).json({ error: error.message });
+      }
+    },
+  );
 
   app.listen(port, () => {
     console.log(`Session service running on http://localhost:${port}`);

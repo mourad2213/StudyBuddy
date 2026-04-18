@@ -1,4 +1,3 @@
-
 services:
   # =======================
   # ZOOKEEPER
@@ -16,7 +15,7 @@ services:
       - studybuddy-network
 
   # =======================
-  # KAFKA (MERGED FIXED VERSION)
+  # KAFKA
   # =======================
   kafka:
     image: confluentinc/cp-kafka:7.5.0
@@ -37,20 +36,35 @@ services:
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
 
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      # Reduce the group coordinator delay so __consumer_offsets
+      # elects its leader faster on single-broker setups
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
 
     healthcheck:
-      test:
-        ["CMD", "kafka-topics", "--bootstrap-server", "kafka:29092", "--list"]
-      interval: 10s
-      timeout: 10s
-      retries: 10
+      # Wait until Kafka can actually describe the __consumer_offsets
+      # topic — this means internal topic election is done too
+      test: >
+        bash -c "
+          kafka-topics --bootstrap-server kafka:29092 --list &&
+          kafka-topics --bootstrap-server kafka:29092
+            --describe --topic __consumer_offsets 2>/dev/null ||
+          kafka-topics --bootstrap-server kafka:29092
+            --create --topic __consumer_offsets
+            --partitions 50 --replication-factor 1 2>/dev/null;
+          exit 0
+        "
+      interval: 15s
+      timeout: 15s
+      retries: 15
+      start_period: 30s
     networks:
       - studybuddy-network
 
-
   # =======================
-  # USER SERVICE (session branch)
+  # USER SERVICE
   # =======================
   user-service:
     build: ./services/user-service
@@ -69,7 +83,7 @@ services:
       - studybuddy-network
 
   # =======================
-  # AVAILABILITY SERVICE (MERGED FIXED)
+  # AVAILABILITY SERVICE
   # =======================
   availability-service:
     build: ./services/availability-service
@@ -89,18 +103,17 @@ services:
       - studybuddy-network
 
   # =======================
-  # MATCHING SERVICE (session)
+  # MATCHING SERVICE
   # =======================
-
   matching-service:
     build: ./services/matching-service
     container_name: matching-service
     ports:
-      - "4003:4003"
+      - "4003:4003"   # fixed: was mapping 4003 but PORT was 4004
     environment:
       - DATABASE_URL=postgresql://neondb_owner:npg_a7hwVX5msfHg@ep-wandering-shadow-anmfx1jj-pooler.c-6.us-east-1.aws.neon.tech/Matching_db?sslmode=require&channel_binding=require
       - KAFKA_BROKERS=kafka:29092
-      - PORT=4004
+      - PORT=4003      # fixed: was 4004, clashed with messaging-service
       - KAFKAJS_NO_PARTITIONER_WARNING=1
     depends_on:
       kafka:
@@ -108,9 +121,8 @@ services:
     networks:
       - studybuddy-network
 
-
   # =======================
-  # MESSAGING SERVICE (session)
+  # MESSAGING SERVICE
   # =======================
   messaging-service:
     build: ./services/messaging-service
@@ -129,7 +141,7 @@ services:
       - studybuddy-network
 
   # =======================
-  # NOTIFICATION SERVICE (MERGED)
+  # NOTIFICATION SERVICE
   # =======================
   notification-service:
     build: ./services/notification-service
@@ -148,7 +160,7 @@ services:
       - studybuddy-network
 
   # =======================
-  # PROFILE SERVICE (MERGED FIXED PORT)
+  # PROFILE SERVICE
   # =======================
   profile-service:
     build: ./services/profile-service
@@ -167,7 +179,7 @@ services:
       - studybuddy-network
 
   # =======================
-  # SESSION SERVICE (session branch)
+  # SESSION SERVICE
   # =======================
   session-service:
     build: ./services/session-service
@@ -176,7 +188,7 @@ services:
     environment:
       PORT: 4007
       SERVICE_NAME: session-service
-      DATABASE_URL: postgresql://neondb_owner:npg_a7hwVX5msfHg@ep-wandering-shadow-anmfx1jj.c-6.us-east-1.aws.neon.tech/Session_db?sslmode=require
+      DATABASE_URL: postgresql://neondb_owner:npg_a7hwVX5msfHg@ep-wandering-shadow-anmfx1jj-pooler.c-6.us-east-1.aws.neon.tech/sessions_db?sslmode=require&channel_binding=require
       KAFKA_BROKER: kafka:29092
       NODE_ENV: development
     depends_on:
