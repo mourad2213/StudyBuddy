@@ -2,7 +2,6 @@ import prisma from "../../prismaClient.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { sendEvent } from "../../kafka.js";
-
 //register and  login
 const JWT_SECRET = process.env.JWT_SECRET;
 
