@@ -73,8 +73,9 @@ services:
     environment:
       PORT: 4001
       SERVICE_NAME: user-service
-      DATABASE_URL: postgresql://neondb_owner:npg_a7hwVX5msfHg@ep-wandering-shadow-anmfx1jj.c-6.us-east-1.aws.neon.tech/User_db?sslmode=require
+      DATABASE_URL: postgresql://neondb_owner:npg_a7hwVX5msfHg@ep-wandering-shadow-anmfx1jj-pooler.c-6.us-east-1.aws.neon.tech/User_db?sslmode=require&channel_binding=require
       KAFKA_BROKER: kafka:29092
+      JWT_SECRET: supersecret
       NODE_ENV: development
     depends_on:
       kafka:
@@ -92,7 +93,7 @@ services:
     environment:
       PORT: 4002
       SERVICE_NAME: availability-service
-      DATABASE_URL: postgresql://neondb_owner:npg_a7hwVX5msfHg@ep-wandering-shadow-anmfx1jj.c-6.us-east-1.aws.neon.tech/Availability_db?sslmode=require&channel_binding=require
+      DATABASE_URL: postgresql://neondb_owner:npg_a7hwVX5msfHg@ep-wandering-shadow-anmfx1jj-pooler.c-6.us-east-1.aws.neon.tech/Availability_db?sslmode=require&channel_binding=require
       KAFKA_BROKER: kafka:29092
       JWT_SECRET: your-secret-key-here
       NODE_ENV: development
