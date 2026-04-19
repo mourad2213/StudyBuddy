@@ -1,5 +1,5 @@
 
-const prisma = require("./db");
+const { prisma, isUserInMatchingList } = require("./db");
 const { publishEvent } = require("./kafka");
 
 const sessionInclude = { participants: true };
@@ -201,6 +201,15 @@ const resolvers = {
     },
 
     joinSession: async (_, { sessionId, userId }) => {
+      // Get the session to verify it exists and get the creator
+      const session = await prisma.studySession.findUnique({
+        where: { id: sessionId },
+      });
+
+      if (!session) {
+        throw new Error("Session not found.");
+      }
+
       // Check if user is already a participant
       const existingParticipant = await prisma.sessionParticipant.findUnique({
         where: {
@@ -213,6 +222,15 @@ const resolvers = {
 
       if (existingParticipant) {
         throw new Error("User is already a participant in this session.");
+      }
+
+      // Verify that the user is in the session creator's matching list
+      const isInMatchingList = await isUserInMatchingList(session.creatorId, userId);
+
+      if (!isInMatchingList) {
+        throw new Error(
+          "You can only join sessions with users who are in your matching list. This user is not in the session creator's matches."
+        );
       }
 
       await prisma.sessionParticipant.create({

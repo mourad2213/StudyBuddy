@@ -8,12 +8,22 @@ const { expressMiddleware } = require("@apollo/server/express4");
 const typeDefs = require("./schema");
 const resolvers = require("./resolvers");
 const { connectProducer, disconnectProducer } = require("./kafka");
+const { testConnection } = require("./db");
 
 const port = Number(process.env.PORT || 4007);
 const serviceName = process.env.SERVICE_NAME || "session-service";
 
 async function startServer() {
   const app = express();
+
+  // Test database connection first
+  console.log("🔗 Testing database connection...");
+  try {
+    await testConnection();
+  } catch (error) {
+    console.error("❌ Failed to connect to database. Exiting...");
+    process.exit(1);
+  }
 
   // Initialize Kafka producer on startup (non-blocking)
   console.log("📡 Initializing Kafka producer (non-blocking)...");
