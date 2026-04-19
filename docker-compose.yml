@@ -177,7 +177,7 @@ services:
     environment:
       PORT: 4007
       SERVICE_NAME: session-service
-      DATABASE_URL: postgresql://neondb_owner:npg_a7hwVX5msfHg@ep-wandering-shadow-anmfx1jj.c-6.us-east-1.aws.neon.tech/Session_db?sslmode=require
+      DATABASE_URL: postgresql://neondb_owner:npg_a7hwVX5msfHg@ep-wandering-shadow-anmfx1jj-pooler.c-6.us-east-1.aws.neon.tech/sessions_db?sslmode=require
       KAFKA_BROKERS: kafka:29092
       NODE_ENV: development
     depends_on:
