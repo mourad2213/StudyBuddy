@@ -177,6 +177,11 @@ const resolvers = {
         );
       }
 
+      // Get session to retrieve creator info
+      const session = await prisma.studySession.findUnique({
+        where: { id: sessionId },
+      });
+
       // Update the participant status
       const updatedParticipant = await prisma.sessionParticipant.update({
         where: { id: participant.id },
@@ -189,6 +194,8 @@ const resolvers = {
           sessionId,
           userId,
           status,
+          topic: session?.topic,
+          creatorId: session?.creatorId,
           participantId: updatedParticipant.id,
           timestamp: new Date().toISOString(),
         });
@@ -238,7 +245,7 @@ const resolvers = {
           sessionId,
           userId,
           role: "MEMBER",
-          inviteStatus: "ACCEPTED",
+          inviteStatus: "PENDING",
         },
       });
 
@@ -247,6 +254,8 @@ const resolvers = {
         await publishEvent("session-events", "SessionJoined", {
           sessionId,
           userId,
+          creatorId: session.creatorId,
+          topic: session.topic,
           timestamp: new Date().toISOString(),
         });
       } catch (error) {
@@ -300,7 +309,10 @@ const resolvers = {
     },
 
     cancelSession: async (_, { id, requesterId }) => {
-      const session = await prisma.studySession.findUnique({ where: { id } });
+      const session = await prisma.studySession.findUnique({
+        where: { id },
+        include: { participants: true },
+      });
 
       if (!session) {
         return false;
@@ -318,6 +330,9 @@ const resolvers = {
           sessionId: id,
           creatorId: requesterId,
           topic: session.topic,
+          participantIds: session.participants
+            .map((participant) => participant.userId)
+            .filter((participantId) => participantId !== requesterId),
           timestamp: new Date().toISOString(),
         });
       } catch (error) {
