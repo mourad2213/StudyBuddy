@@ -123,23 +123,36 @@ services:
       - studybuddy-network
 
   # =======================
-  # MESSAGING SERVICE
+  # MESSAGING SERVICE (Real-time WebSocket)
   # =======================
   messaging-service:
     build: ./services/messaging-service
+    container_name: messaging-service
     ports:
-      - "4004:4004"
+      - "4008:4008"
     environment:
-      PORT: 4004
+      PORT: 4008
       SERVICE_NAME: messaging-service
-      DATABASE_URL: postgresql://neondb_owner:npg_a7hwVX5msfHg@ep-wandering-shadow-anmfx1jj.c-6.us-east-1.aws.neon.tech/Messaging_db?sslmode=require
+      DATABASE_URL: postgresql://neondb_owner:npg_a7hwVX5msfHg@ep-wandering-shadow-anmfx1jj-pooler.c-6.us-east-1.aws.neon.tech/messaging_db?sslmode=require&channel_binding=require
+      DIRECT_URL: postgresql://neondb_owner:npg_a7hwVX5msfHg@ep-wandering-shadow-anmfx1jj-pooler.c-6.us-east-1.aws.neon.tech/messaging_db?sslmode=require&channel_binding=require
+      MATCHING_DATABASE_URL: postgresql://neondb_owner:npg_a7hwVX5msfHg@ep-wandering-shadow-anmfx1jj-pooler.c-6.us-east-1.aws.neon.tech/Matching_db?sslmode=require&channel_binding=require
       KAFKA_BROKER: kafka:29092
+      JWT_SECRET: your_jwt_secret_key
       NODE_ENV: development
     depends_on:
       kafka:
         condition: service_healthy
     networks:
       - studybuddy-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:4008/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+
+
 
   # =======================
   # NOTIFICATION SERVICE
@@ -184,19 +197,27 @@ services:
   # =======================
   session-service:
     build: ./services/session-service
+    container_name: session-service
     ports:
       - "4007:4007"
     environment:
       PORT: 4007
       SERVICE_NAME: session-service
       DATABASE_URL: postgresql://neondb_owner:npg_a7hwVX5msfHg@ep-wandering-shadow-anmfx1jj-pooler.c-6.us-east-1.aws.neon.tech/sessions_db?sslmode=require&channel_binding=require
-      KAFKA_BROKER: kafka:29092
+      DIRECT_URL: postgresql://neondb_owner:npg_a7hwVX5msfHg@ep-wandering-shadow-anmfx1jj-pooler.c-6.us-east-1.aws.neon.tech/sessions_db?sslmode=require&channel_binding=require
+      KAFKA_BROKERS: kafka:29092
       NODE_ENV: development
     depends_on:
       kafka:
         condition: service_healthy
     networks:
       - studybuddy-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:4007/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 networks:
   studybuddy-network:

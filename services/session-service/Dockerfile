@@ -1,30 +1,25 @@
-FROM node:20-slim
+FROM node:20-alpine
 
 WORKDIR /app
 
-# Install dependencies for Prisma
-RUN apt-get update && apt-get install -y \
-    openssl \
-    libssl3 \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy package files first for better caching
+# Copy package files
 COPY package*.json ./
 
 # Install dependencies
-RUN npm install
+RUN npm ci
 
-# Copy prisma folder and generate client
-COPY prisma ./prisma/
+# Copy application code
+COPY . .
+
+# Generate Prisma client
 RUN npx prisma generate
-
-# Copy source files
-COPY index.js ./
-COPY kafka.js ./
 
 # Expose port
 EXPOSE 4007
 
-# Start the service
-CMD ["node", "index.js"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD npm run health || exit 1
+
+# Start application
+CMD ["npm", "start"]

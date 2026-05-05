@@ -1,26 +1,27 @@
 {
   "name": "messaging-service",
   "version": "1.0.0",
-  "description": "",
+  "description": "Real-time messaging service with WebSocket and GraphQL",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js",
+    "start": "node src/index.js",
+    "start:docker": "sh -c '((npx prisma migrate deploy) || (npx prisma db push --accept-data-loss)) && node src/index.js'",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
-    "@prisma/client": "^6.18.0",
-    "cors": "^2.8.5",
-    "dotenv": "^17.2.3",
-    "express": "^5.1.0",
-    "kafkajs": "^2.2.4"
-  },
-  "devDependencies": {
-    "nodemon": "^3.1.10",
-    "prisma": "^6.18.0"
+    "@prisma/client": "^6.19.3",
+    "apollo-server-express": "^3.13.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^4.22.1",
+    "graphql": "^16.13.2",
+    "jsonwebtoken": "^9.0.3",
+    "kafkajs": "^2.2.4",
+    "prisma": "^6.19.3",
+    "ws": "^8.16.0"
   }
 }

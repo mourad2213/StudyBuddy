@@ -1,18 +1,14 @@
-FROM node:20
+FROM node:18-alpine
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
-
-COPY package*.json ./
-RUN npm install
-
-
-COPY prisma ./prisma
-RUN npx prisma generate
+COPY package.json package-lock.json ./
+RUN npm cache clean --force && npm ci
 
 COPY . .
 
-EXPOSE 4004
+RUN npx prisma generate
 
-CMD ["npm", "run", "start"]
+EXPOSE 4008
+
+CMD ["npm", "run", "start:docker"]
