@@ -1,5 +1,5 @@
 
-const prisma = require("./db");
+const { prisma, isUserInMatchingList } = require("./db");
 const { publishEvent } = require("./kafka");
 
 const sessionInclude = { participants: true };
@@ -177,6 +177,11 @@ const resolvers = {
         );
       }
 
+      // Get session to retrieve creator info
+      const session = await prisma.studySession.findUnique({
+        where: { id: sessionId },
+      });
+
       // Update the participant status
       const updatedParticipant = await prisma.sessionParticipant.update({
         where: { id: participant.id },
@@ -189,6 +194,8 @@ const resolvers = {
           sessionId,
           userId,
           status,
+          topic: session?.topic,
+          creatorId: session?.creatorId,
           participantId: updatedParticipant.id,
           timestamp: new Date().toISOString(),
         });
@@ -201,6 +208,15 @@ const resolvers = {
     },
 
     joinSession: async (_, { sessionId, userId }) => {
+      // Get the session to verify it exists and get the creator
+      const session = await prisma.studySession.findUnique({
+        where: { id: sessionId },
+      });
+
+      if (!session) {
+        throw new Error("Session not found.");
+      }
+
       // Check if user is already a participant
       const existingParticipant = await prisma.sessionParticipant.findUnique({
         where: {
@@ -215,12 +231,21 @@ const resolvers = {
         throw new Error("User is already a participant in this session.");
       }
 
+      // Verify that the user is in the session creator's matching list
+      const isInMatchingList = await isUserInMatchingList(session.creatorId, userId);
+
+      if (!isInMatchingList) {
+        throw new Error(
+          "You can only join sessions with users who are in your matching list. This user is not in the session creator's matches."
+        );
+      }
+
       await prisma.sessionParticipant.create({
         data: {
           sessionId,
           userId,
           role: "MEMBER",
-          inviteStatus: "ACCEPTED",
+          inviteStatus: "PENDING",
         },
       });
 
@@ -229,6 +254,8 @@ const resolvers = {
         await publishEvent("session-events", "SessionJoined", {
           sessionId,
           userId,
+          creatorId: session.creatorId,
+          topic: session.topic,
           timestamp: new Date().toISOString(),
         });
       } catch (error) {
@@ -282,7 +309,10 @@ const resolvers = {
     },
 
     cancelSession: async (_, { id, requesterId }) => {
-      const session = await prisma.studySession.findUnique({ where: { id } });
+      const session = await prisma.studySession.findUnique({
+        where: { id },
+        include: { participants: true },
+      });
 
       if (!session) {
         return false;
@@ -300,6 +330,9 @@ const resolvers = {
           sessionId: id,
           creatorId: requesterId,
           topic: session.topic,
+          participantIds: session.participants
+            .map((participant) => participant.userId)
+            .filter((participantId) => participantId !== requesterId),
           timestamp: new Date().toISOString(),
         });
       } catch (error) {
