@@ -153,7 +153,7 @@ const resolvers = {
         });
 
         // Publish event to Kafka
-        await kafka.publishEvent('AvailabilityCreated', {
+        await kafka.publishAvailabilityEvent('AvailabilityCreated', {
           userId,
           availabilityId: availability.id,
           dayOfWeek,
@@ -209,7 +209,7 @@ const resolvers = {
         });
 
         // Publish event to Kafka
-        await kafka.publishEvent('AvailabilityUpdated', {
+        await kafka.publishAvailabilityEvent('AvailabilityUpdated', {
           userId,
           availabilityId: id,
           action: 'updated',
@@ -247,7 +247,7 @@ const resolvers = {
 
         // Publish event to Kafka
         try {
-        await kafka.publishEvent('AvailabilityDeleted', {
+        await kafka.publishAvailabilityEvent('AvailabilityDeleted', {
           userId,
           availabilityId: id,
         });

@@ -31,7 +31,7 @@ async function cacheUserData(userId, data) {
       studyMode: data.studyMode,
       groupSize: data.groupSize,
       studyStyle: data.studyStyle,
-      availability: data.availability,
+      availability: data.availability ?? [],
       lastUpdated: new Date(),
     },
     create: {
@@ -42,7 +42,7 @@ async function cacheUserData(userId, data) {
       studyMode: data.studyMode,
       groupSize: data.groupSize,
       studyStyle: data.studyStyle,
-      availability: data.availability,
+      availability: data.availability ?? [],
     },
   });
 }

@@ -5,10 +5,12 @@ dotenv.config();
 
 const kafka = new Kafka({
   clientId: 'matching-service',
-  brokers: process.env.KAFKA_BROKERS?.split(',') || ['localhost:9092'],
+  brokers: process.env.KAFKA_BROKERS?.split(',') || ['kafka:29092'],
 });
 
+// Declare BOTH before use — order matters
 const consumer = kafka.consumer({ groupId: 'matching-service-group' });
+const producer = kafka.producer();
 
 export const MATCHING_EVENTS = {
   USER_PREFERENCES_UPDATED: 'UserPreferencesUpdated',
@@ -31,6 +33,11 @@ export const MATCHING_WEIGHTS = {
 export async function connectConsumer() {
   await consumer.connect();
   console.log('Matching service Kafka consumer connected');
+}
+
+export async function connectProducer() {
+  await producer.connect();
+  console.log('Matching service Kafka producer connected');
 }
 
 export async function subscribeToEvents() {
@@ -70,13 +77,6 @@ export async function produceRecommendationsEvent(recommendations, userId) {
     topic: MATCHING_EVENTS.RECOMMENDATIONS_GENERATED,
     messages: [{ value: JSON.stringify(event) }],
   });
-}
-
-const producer = kafka.producer();
-
-export async function connectProducer() {
-  await producer.connect();
-  console.log('Matching service Kafka producer connected');
 }
 
 export async function produceEvent(topic, payload) {

@@ -15,7 +15,7 @@ RUN npx prisma generate
 
 # Copy the rest of the code
 COPY . .
-
+# COPY .env ./
 # Expose your port
 EXPOSE 5000
 

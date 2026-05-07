@@ -39,6 +39,7 @@ const typeDefs = gql`
 
     type Query {
         getProfile(userId: String!): Profile
+        getAllProfiles: [Profile]  # Add this line
         getCourses(profileId: String!): [Course]
         getTopics(profileId: String!): [Topic]
         getPreference(profileId: String!): Preference
@@ -96,6 +97,15 @@ const resolvers = {
             });
         },
 
+         getAllProfiles: async () => {
+            return prisma.profile.findMany({
+                include: {
+                    courses: true,
+                    topics: true,
+                    preferences: true
+                }
+            });
+        },
         getPreference: async (_, { profileId }) => {
             return prisma.preference.findUnique({
                 where: { profileId }

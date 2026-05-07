@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 const kafka = new Kafka({
   clientId: "notification-service",
-  brokers: [process.env.KAFKA_BROKER],
+  brokers: [process.env.KAFKA_BROKER || "kafka:29092"],
 });
 
 const consumer = kafka.consumer({ groupId: "notification-group" });
@@ -20,7 +20,9 @@ const runConsumer = async () => {
       break;
     } catch (err) {
       retries--;
-      console.log(`⏳ Kafka not ready, retrying in 5s... (${retries} retries left)`);
+      console.log(
+        `⏳ Kafka not ready, retrying in 5s... (${retries} retries left)`,
+      );
       await new Promise((res) => setTimeout(res, 5000));
       if (retries === 0) {
         console.error("❌ Could not connect to Kafka after multiple retries");
@@ -103,21 +105,22 @@ const runConsumer = async () => {
           await prisma.notification.create({
             data: {
               userId: event.payload.toUserId,
-              message: "Someone wants to study with you! Check your buddy requests.",
+              message:
+                "Someone wants to study with you! Check your buddy requests.",
               type: "BUDDY_REQUEST_RECEIVED",
             },
           });
           break;
 
-        case "SESSION_REMINDER":
-          await prisma.notification.create({
-            data: {
-              userId: event.payload.userId,
-              message: "Reminder: You have an upcoming study session.",
-              type: "SESSION_REMINDER",
-            },
-          });
-          break;
+        // case "SESSION_REMINDER":
+        //   await prisma.notification.create({
+        //     data: {
+        //       userId: event.payload.userId,
+        //       message: "Reminder: You have an upcoming study session.",
+        //       type: "SESSION_REMINDER",
+        //     },
+        //   });
+        //   break;
 
         case "MessageSent":
           // Notify recipient of new message
