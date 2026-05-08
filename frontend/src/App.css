@@ -1,3 +1,15 @@
+.app-wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.app-main {
+  flex: 1;
+  padding: 2rem;
+  width: 100%;
+}
+
 .counter {
   font-size: 16px;
   padding: 5px 10px;
