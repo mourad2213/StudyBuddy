@@ -70,6 +70,8 @@ services:
     build: ./services/user-service
     ports:
       - "4001:4001"
+    env_file:
+      - ./services/user-service/.env
     environment:
       PORT: 4001
       SERVICE_NAME: user-service
@@ -110,11 +112,11 @@ services:
     build: ./services/matching-service
     container_name: matching-service
     ports:
-      - "4003:4003"   # fixed: was mapping 4003 but PORT was 4004
+      - "4003:4003" # fixed: was mapping 4003 but PORT was 4004
     environment:
       - DATABASE_URL=postgresql://neondb_owner:npg_a7hwVX5msfHg@ep-wandering-shadow-anmfx1jj-pooler.c-6.us-east-1.aws.neon.tech/Matching_db?sslmode=require&channel_binding=require
       - KAFKA_BROKERS=kafka:29092
-      - PORT=4003      # fixed: was 4004, clashed with messaging-service
+      - PORT=4003 # fixed: was 4004, clashed with messaging-service
       - KAFKAJS_NO_PARTITIONER_WARNING=1
     depends_on:
       kafka:
@@ -145,14 +147,19 @@ services:
     networks:
       - studybuddy-network
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:4008/health"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://localhost:4008/health",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
-
-
-
 
   # =======================
   # NOTIFICATION SERVICE
@@ -213,7 +220,15 @@ services:
     networks:
       - studybuddy-network
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:4007/health"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://localhost:4007/health",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
