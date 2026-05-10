@@ -71,7 +71,7 @@ export default function Header() {
         {!isLoggedIn ? (
           <>
             <div className="header-buttons desktop-only">
-              <Link to="/" className="btn btn-login">
+              <Link to="/login" className="btn btn-login">
                 Log In
               </Link>
               <Link to="/signup" className="btn btn-signup">

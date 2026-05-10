@@ -1,12 +1,15 @@
+@import "./assets/colors.css";
+
 .app-wrapper {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  background: var(--beige);
 }
 
 .app-main {
   flex: 1;
-  padding: 2rem;
+  padding: 0;
   width: 100%;
 }
 
@@ -179,7 +182,7 @@
 
   &::before,
   &::after {
-    content: '';
+    content: "";
     position: absolute;
     top: -4.5px;
     border: 5px solid transparent;
