@@ -10,6 +10,8 @@ import {
   DELETE_NOTIFICATION,
 } from "../graphql/mutations/notifications";
 
+import notificationArrow from "../assets/notification-arrow.png";
+
 export default function NotificationsPage() {
   const currentUserId = localStorage.getItem("userId");
 
@@ -131,7 +133,11 @@ export default function NotificationsPage() {
       <section className="notifications-heading">
         <h1>StudyBuddy</h1>
         <h2>Notifications</h2>
-        <div className="notifications-scribble"></div>
+        <img
+            src={notificationArrow}
+            alt=""
+            className="notifications-arrow"
+        />
       </section>
 
       <section className="notifications-top-actions">
