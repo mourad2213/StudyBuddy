@@ -1,0 +1,259 @@
+/* ── StudyPreferences.css ── */
+
+.sp-wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Georgia', serif;
+  background: #f0ebe3;
+}
+
+/* Navbar */
+.sp-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #1b2a3b;
+  padding: 0 2rem;
+  height: 60px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.sp-logo-icon {
+  font-size: 1.4rem;
+}
+
+.sp-nav-links {
+  display: flex;
+  gap: 2rem;
+}
+
+.sp-nav-links a {
+  color: #d4c9b8;
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: color 0.2s;
+}
+
+.sp-nav-links a:hover {
+  color: #fff;
+}
+
+.sp-nav-auth {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.sp-btn-outline {
+  background: transparent;
+  border: 1.5px solid #d4c9b8;
+  color: #d4c9b8;
+  padding: 0.35rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.sp-btn-outline:hover {
+  background: rgba(255,255,255,0.08);
+}
+
+.sp-btn-filled {
+  background: #d4c9b8;
+  border: none;
+  color: #1b2a3b;
+  padding: 0.35rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.sp-btn-filled:hover {
+  background: #c4b8a5;
+}
+
+/* Body */
+.sp-body {
+  display: flex;
+  flex: 1;
+  min-height: calc(100vh - 60px);
+}
+
+.sp-image-panel {
+  width: 45%;
+  overflow: hidden;
+}
+
+.sp-bg-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(0.82) sepia(0.15);
+}
+
+.sp-form-panel {
+  width: 55%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 2rem;
+  background: #f0ebe3;
+}
+
+.sp-title {
+  font-size: 2rem;
+  color: #1b2a3b;
+  margin-bottom: 1.5rem;
+  font-weight: 500;
+}
+
+.sp-card {
+  background: #fff;
+  border: 1.5px solid #d6cfc5;
+  border-radius: 10px;
+  padding: 2rem 2.5rem;
+  width: 100%;
+  max-width: 420px;
+}
+
+.sp-card-subtitle {
+  text-align: center;
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+}
+
+.sp-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.sp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.sp-field label {
+  font-size: 0.85rem;
+  color: #1b2a3b;
+  font-weight: 500;
+}
+
+.sp-field input {
+  padding: 0.55rem 0.8rem;
+  border: 1.5px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background: #faf9f7;
+  color: #333;
+  outline: none;
+  transition: border-color 0.2s;
+  font-family: inherit;
+}
+
+.sp-field input:focus {
+  border-color: #1b2a3b;
+}
+
+.sp-field input::placeholder {
+  color: #aaa;
+}
+
+/* Dropdown */
+.sp-dropdown-wrapper {
+  position: relative;
+}
+
+.sp-dropdown-btn {
+  width: 100%;
+  padding: 0.55rem 0.8rem;
+  border: 1.5px solid #ccc;
+  border-radius: 6px;
+  background: #faf9f7;
+  font-size: 0.9rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+
+.sp-arrow {
+  color: #888;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+  margin-left: 0.5rem;
+}
+
+.sp-dropdown-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1.5px solid #ccc;
+  border-radius: 6px;
+  list-style: none;
+  margin: 0.2rem 0 0;
+  padding: 0.3rem 0;
+  z-index: 50;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.sp-dropdown-list li {
+  padding: 0.5rem 0.9rem;
+  font-size: 0.9rem;
+  color: #333;
+  cursor: pointer;
+  transition: background 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.sp-dropdown-list li:hover {
+  background: #f0ebe3;
+}
+
+.sp-dropdown-list li.sp-selected {
+  background: #eef2f7;
+  color: #1b2a3b;
+  font-weight: 500;
+}
+
+.sp-check {
+  color: #1b2a3b;
+  font-weight: 700;
+  font-size: 0.8rem;
+  width: 14px;
+}
+
+/* Save button */
+.sp-save-btn {
+  margin-top: 0.5rem;
+  width: 100%;
+  padding: 0.7rem;
+  background: #1b2a3b;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: background 0.2s;
+  font-family: inherit;
+}
+
+.sp-save-btn:hover {
+  background: #243447;
+}
