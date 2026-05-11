@@ -56,7 +56,7 @@ export default function Header() {
           <Link to="/" className="nav-link" onClick={closeMenu}>
             Find Buddy
           </Link>
-          <Link to="/" className="nav-link" onClick={closeMenu}>
+          <Link to="/sessions" className="nav-link" onClick={closeMenu}>
             Sessions
           </Link>
           <Link to="/" className="nav-link" onClick={closeMenu}>

@@ -1,9 +1,10 @@
-import { PrismaClient } from '@prisma/client';
 import { MATCHING_WEIGHTS } from './kafka.js';
-
+import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 export const WEIGHTS = MATCHING_WEIGHTS;
+
+
 
 export async function calculateCompatibility(userId, candidateData) {
   const cachedUser = await prisma.cachedUserData.findUnique({
@@ -126,14 +127,45 @@ function checkPreferencesMatch(user1, user2) {
   return paceMatch && modeMatch && groupSizeDiff;
 }
 
+async function getUserNames(userIds) {
+  const userNameMap = new Map();
+  for (const id of userIds) {
+    // Since userId and candidateId columns store usernames, not UUIDs,
+    // we return them as-is in the map
+    userNameMap.set(id, id);
+  }
+  return userNameMap;
+}
+
 export async function getRecommendations(userId, limit = 10) {
+  const currentUserNames = await getUserNames([userId]);
+  const currentUserName = currentUserNames.get(userId);
+
+  const matchValues = Array.from(new Set([userId, currentUserName].filter(Boolean)));
+
   const recommendations = await prisma.matchRecommendation.findMany({
-    where: { userId },
-    orderBy: { score: 'desc' },
+    where: matchValues.length > 0 ? {
+      OR: matchValues.flatMap((value) => ([
+        { userId: value },
+        { candidateId: value },
+      ])),
+    } : { OR: [{ userId }, { candidateId: userId }] },
+    orderBy: [{ score: 'desc' }, { createdAt: 'desc' }],
     take: limit,
   });
 
-  return recommendations;
+  const userNames = await getUserNames([
+    ...recommendations.map((rec) => rec.userId),
+    ...recommendations.map((rec) => rec.candidateId),
+    userId,
+    currentUserName,
+  ]);
+
+  return recommendations.map((rec) => ({
+    ...rec,
+    userName: userNames.get(rec.userId) || rec.userId,
+    candidateName: userNames.get(rec.candidateId) || rec.candidateId,
+  }));
 }
 
 export async function generateAndStoreRecommendations(userId) {

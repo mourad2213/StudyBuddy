@@ -4,6 +4,9 @@ import Footer from "./components/Footer";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import FriendRequests from "./pages/FriendRequests";
+import Sessions from "./pages/Sessions";
+import ChatApp from "./pages/ChatApp";
+import CreateSession from "./pages/CreateSession";
 import "./App.css";
 
 export default function App() {
@@ -16,6 +19,10 @@ export default function App() {
             <Route path="/" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/friends" element={<FriendRequests />} />
+            <Route path="/sessions" element={<Sessions />} />
+            <Route path="/create-session" element={<CreateSession />} />
+            <Route path="/chat" element={<ChatApp />} />
+
           </Routes>
         </main>
         <Footer />
