@@ -327,7 +327,7 @@ body,
 .availability-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.05);
+  background: transparent;
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -337,71 +337,53 @@ body,
 
 .availability-modal {
   position: relative;
-  width: 590px;
-  min-height: 420px;
-  background: #e4f2ff;
-  border: 1px solid #a8b7c2;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.35);
-  padding: 8px 20px 28px;
+  width: 600px;
+  height: 475px;
   color: #000;
   overflow: hidden;
+
+  background-image: url("/add-availability-bg.png");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100% 100%;
+
+  border: none;
+  box-shadow: none;
+  padding: 0;
 }
 
-.availability-modal::before {
-  content: "";
-  position: absolute;
-  top: 16px;
-  left: 86px;
-  width: 360px;
-  height: 105px;
-  border: 4px solid #2e3d53;
-  border-right-color: transparent;
-  border-top-color: #2e3d53;
-  border-radius: 50%;
-  transform: rotate(8deg);
-  opacity: 0.95;
-}
-
-.availability-modal::after {
-  content: "";
-  position: absolute;
-  bottom: -23px;
-  left: 28px;
-  width: 210px;
-  height: 170px;
-  border: 4px solid #2e3d53;
-  border-right-color: transparent;
-  border-top-color: transparent;
-  border-radius: 50%;
-  transform: rotate(-18deg);
-}
 
 .availability-modal h2 {
   position: relative;
   z-index: 1;
   text-align: center;
-  margin: 0 0 72px;
+
+  /* move title upward */
+  margin: 0px 0 92px;
+
   color: #2e3d53;
   font-size: 50px;
   font-weight: 400;
   font-family: "Playfair Display", Georgia, serif;
-
 }
-
 .modal-line {
   position: relative;
   z-index: 1;
   display: flex;
   align-items: center;
-  margin: 42px 0;
+
+  /* controls spacing between Choose day and pick time */
+  margin: 36px 0 0;
+
+  padding-left: 16px;
   font-size: 39px;
   font-family: "Playfair Display", Georgia, serif;
-
 }
 
 .modal-line label {
   min-width: 205px;
 }
+
 
 .modal-line select,
 .modal-line input {
@@ -418,8 +400,10 @@ body,
   z-index: 1;
   display: flex;
   justify-content: center;
-  gap: 80px;
-  margin-top: 50px;
+  gap: 74px;
+
+  /* smaller = buttons go up */
+  margin-top: 48px;
 }
 
 .cancel-modal-btn,

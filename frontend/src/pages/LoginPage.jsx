@@ -22,7 +22,7 @@ function LoginPage() {
     });
 
     localStorage.setItem("token", res.data.login.token);
-
+localStorage.setItem("userId", res.data.login.user.id);
     //alert("Logged In!");
     navigate("/profile");
   };
