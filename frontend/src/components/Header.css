@@ -45,7 +45,7 @@
   font-size: 1.1rem;
   font-weight: 500;
   transition: color 0.3s ease;
-  font-family: 'Playfair Display', serif;
+  font-family: "Playfair Display", serif;
   white-space: nowrap;
 }
 
@@ -78,7 +78,7 @@
   border: 2px solid transparent;
   cursor: pointer;
   font-size: 0.95rem;
-  font-family: 'Playfair Display', serif;
+  font-family: "Playfair Display", serif;
   white-space: nowrap;
 }
 
@@ -160,9 +160,7 @@
   }
 
   .header-logo {
-    
     visibility: hidden;
-    
   }
 
   .header-nav {
@@ -170,7 +168,7 @@
     left: 0;
     top: 0;
     width: 280px;
-    display: flex;                  
+    display: flex;
     justify-content: flex-start;
     height: 100vh;
     background-color: #2c3e50;
@@ -281,7 +279,7 @@
 .user-greeting {
   font-weight: 500;
   color: #ffffff;
-  font-family: 'Playfair Display', serif;
+  font-family: "Playfair Display", serif;
   font-size: 1rem;
   white-space: nowrap;
 }
@@ -349,4 +347,3 @@
     right: -10px;
   }
 }
-

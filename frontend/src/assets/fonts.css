@@ -1,0 +1,10 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&family=Prata&family=Inter:wght@300;400;500;600;700&display=swap");
+
+:root {
+  --font-mono:
+    "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  --font-display: "Playfair Display", "Times New Roman", serif;
+  --font-prata: "Prata", "Times New Roman", serif;
+  --font-inter: "Inter", "Helvetica Neue", Arial, sans-serif;
+}
