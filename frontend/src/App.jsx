@@ -1,31 +1,60 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-// Existing pages
+import LandingPage from "./pages/LandingPage";
+import LoginPage from "./pages/LoginPage";
+import SignupPage from "./pages/SignupPage";
+import ProfilePage from "./pages/ProfilePage";
+import AvailabilityPage from "./pages/AvailabilityPage.jsx";
+import NotificationsPage from "./pages/NotificationsPage.jsx";
+
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import FriendRequests from "./pages/FriendRequests";
-
-// Your pages
 import ProfileSetup from "./pages/ProfileSetup";
 import StudyPreferences from "./pages/StudyPreferences";
 import UserProfile from "./pages/UserProfile";
 
-export default function App() {
+import Header from "./components/Header";
+import Footer from "./components/Footer";
+
+import "./App.css";
+
+function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        {/* Auth */}
-        <Route path="/" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
+      <div className="app-wrapper">
+        <Header />
 
-        {/* Post-signup onboarding flow */}
-        <Route path="/profile-setup" element={<ProfileSetup />} />
-        <Route path="/study-preferences" element={<StudyPreferences />} />
+        <main className="app-main">
+          <Routes>
+            {/* Existing routes */}
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignupPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/availability" element={<AvailabilityPage />} />
+            <Route
+              path="/notifications"
+              element={<NotificationsPage />}
+            />
 
-        {/* Main app */}
-        <Route path="/friends" element={<FriendRequests />} />
-        <Route path="/profile" element={<UserProfile />} />
-      </Routes>
+            {/* Nour's routes */}
+            <Route path="/auth-login" element={<Login />} />
+            <Route path="/auth-signup" element={<Signup />} />
+            <Route path="/profile-setup" element={<ProfileSetup />} />
+            <Route
+              path="/study-preferences"
+              element={<StudyPreferences />}
+            />
+            <Route path="/friends" element={<FriendRequests />} />
+            <Route path="/user-profile" element={<UserProfile />} />
+          </Routes>
+        </main>
+
+        <Footer />
+      </div>
     </BrowserRouter>
   );
 }
+
+export default App;
