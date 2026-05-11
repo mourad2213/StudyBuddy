@@ -4,7 +4,7 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   position: relative;
   z-index: 1001;
-  overflow: visible;
+  overflow: hidden;
 }
 
 .header-container {
@@ -45,7 +45,11 @@
   font-size: 1.1rem;
   font-weight: 500;
   transition: color 0.3s ease;
+<<<<<<< HEAD
   font-family: "Playfair Display", serif;
+=======
+  font-family: 'Playfair Display', serif;
+>>>>>>> origin/Mourad
   white-space: nowrap;
 }
 
@@ -61,10 +65,13 @@
   margin-left: auto;
 }
 
+<<<<<<< HEAD
 .header-actions {
   gap: 0.6rem;
 }
 
+=======
+>>>>>>> origin/Mourad
 .desktop-only {
   display: flex;
 }
@@ -82,7 +89,11 @@
   border: 2px solid transparent;
   cursor: pointer;
   font-size: 0.95rem;
+<<<<<<< HEAD
   font-family: "Playfair Display", serif;
+=======
+  font-family: 'Playfair Display', serif;
+>>>>>>> origin/Mourad
   white-space: nowrap;
 }
 
@@ -111,6 +122,7 @@
   background-color: #f0f0f0;
 }
 
+<<<<<<< HEAD
 .menu-dropdown-wrap {
   position: relative;
   display: flex;
@@ -174,6 +186,8 @@
   background-color: #f0f0f0;
 }
 
+=======
+>>>>>>> origin/Mourad
 .hamburger-menu {
   display: none;
   flex-direction: column;
@@ -227,7 +241,13 @@
   }
 
   .header-logo {
+<<<<<<< HEAD
     visibility: hidden;
+=======
+    
+    visibility: hidden;
+    
+>>>>>>> origin/Mourad
   }
 
   .header-nav {
@@ -235,7 +255,11 @@
     left: 0;
     top: 0;
     width: 280px;
+<<<<<<< HEAD
     display: flex;
+=======
+    display: flex;                  
+>>>>>>> origin/Mourad
     justify-content: flex-start;
     height: 100vh;
     background-color: #2c3e50;
@@ -346,7 +370,11 @@
 .user-greeting {
   font-weight: 500;
   color: #ffffff;
+<<<<<<< HEAD
   font-family: "Playfair Display", serif;
+=======
+  font-family: 'Playfair Display', serif;
+>>>>>>> origin/Mourad
   font-size: 1rem;
   white-space: nowrap;
 }
@@ -414,3 +442,7 @@
     right: -10px;
   }
 }
+<<<<<<< HEAD
+=======
+
+>>>>>>> origin/Mourad

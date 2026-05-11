@@ -9,20 +9,32 @@ import {
 
 import { ApolloProvider } from "@apollo/client/react";
 
-import "./index.css";
 import App from "./App";
+import "./index.css";
+
+/* Service URLs */
+const userServiceUrl = "http://localhost:4001/graphql";
+const profileServiceUrl = "http://localhost:4006/graphql";
+const sessionServiceUrl = "http://localhost:4007/graphql";
 
 /* Apollo Clients */
 export const userClient = new ApolloClient({
   link: new HttpLink({
-    uri: "http://localhost:4001/graphql",
+    uri: userServiceUrl,
   }),
   cache: new InMemoryCache(),
 });
 
 export const profileClient = new ApolloClient({
   link: new HttpLink({
-    uri: "http://localhost:4006/graphql",
+    uri: profileServiceUrl,
+  }),
+  cache: new InMemoryCache(),
+});
+
+export const sessionClient = new ApolloClient({
+  link: new HttpLink({
+    uri: sessionServiceUrl,
   }),
   cache: new InMemoryCache(),
 });
