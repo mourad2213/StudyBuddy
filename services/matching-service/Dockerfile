@@ -24,7 +24,7 @@ COPY index.js ./
 COPY kafka.js ./
 COPY matchingService.js ./
 COPY graphql ./graphql/
-COPY .env ./
+#COPY .env ./
 
 # Expose port
 EXPOSE 4004
