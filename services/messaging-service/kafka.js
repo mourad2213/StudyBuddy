@@ -1,25 +1,37 @@
-const { Kafka } = require("kafkajs");
-const { PrismaClient } = require("@prisma/client");
+import { Kafka, logLevel } from "kafkajs";
 
-const prisma = new PrismaClient();
+// ==============================
+// VALIDATE BROKERS (IMPORTANT)
+// ==============================
+const brokers = (process.env.KAFKA_BROKERS || "")
+  .split(",")
+  .map((b) => b.trim())
+  .filter(Boolean);
 
+if (brokers.length === 0) {
+  throw new Error("❌ KAFKA_BROKERS is not set correctly");
+}
+
+// ==============================
+// KAFKA CLIENT (AIVEN READY)
+// ==============================
 const kafka = new Kafka({
-  clientId: "notification-service",
+  clientId: "messaging-service",
+  brokers,
 
-  // ✅ Aiven / production multi-broker support
-  brokers: process.env.KAFKA_BROKERS
-    ? process.env.KAFKA_BROKERS.split(",")
-    : ["localhost:9092"],
+  logLevel: logLevel.INFO,
 
-  // ✅ Aiven SSL
+  // ==============================
+  // AIVEN SSL CONFIG
+  // ==============================
   ssl:
     process.env.KAFKA_USERNAME && process.env.KAFKA_PASSWORD
-      ? {
-          rejectUnauthorized: false,
-        }
+      ? true
       : false,
 
-  // ✅ Aiven SASL auth
+  // ==============================
+  // AIVEN SASL AUTH
+  // ==============================
   sasl:
     process.env.KAFKA_USERNAME && process.env.KAFKA_PASSWORD
       ? {
@@ -30,52 +42,76 @@ const kafka = new Kafka({
       : undefined,
 });
 
+// ==============================
+// PRODUCER + CONSUMER
+// ==============================
+const producer = kafka.producer();
 const consumer = kafka.consumer({
-  groupId: "notification-group",
+  groupId: "messaging-service-group",
 });
 
-const runConsumer = async () => {
+// ==============================
+// CONNECT PRODUCER
+// ==============================
+export async function connectProducer() {
   let retries = 10;
 
   while (retries > 0) {
     try {
-      await consumer.connect();
-      console.log("✅ Kafka consumer connected");
-      break;
+      await producer.connect();
+      console.log("✅ Kafka Producer Connected");
+      return;
     } catch (err) {
       retries--;
 
       console.log(
-        `⏳ Kafka not ready, retrying in 5s... (${retries} retries left)`
+        `⏳ Kafka Producer not ready, retrying in 5s... (${retries} retries left)`
       );
       console.error(err.message);
 
       await new Promise((res) => setTimeout(res, 5000));
 
       if (retries === 0) {
-        console.error(
-          "❌ Could not connect to Kafka after multiple retries"
-        );
-        return;
+        console.error("❌ Producer failed to connect to Kafka");
       }
     }
   }
+}
 
-  // ======================
-  // SUBSCRIPTIONS
-  // ======================
+// ==============================
+// CONNECT CONSUMER
+// ==============================
+export async function connectConsumer() {
+  let retries = 10;
+
+  while (retries > 0) {
+    try {
+      await consumer.connect();
+      console.log("✅ Kafka Consumer Connected");
+      return;
+    } catch (err) {
+      retries--;
+
+      console.log(
+        `⏳ Kafka Consumer not ready, retrying in 5s... (${retries} retries left)`
+      );
+      console.error(err.message);
+
+      await new Promise((res) => setTimeout(res, 5000));
+
+      if (retries === 0) {
+        console.error("❌ Consumer failed to connect to Kafka");
+      }
+    }
+  }
+}
+
+// ==============================
+// SUBSCRIBE TO EVENTS
+// ==============================
+export async function subscribeToEvents(callback) {
   await consumer.subscribe({
     topic: "study-events",
-    fromBeginning: false,
-  });
-
-  await consumer.subscribe({
-    topic: "session-events",
-    fromBeginning: false,
-  });
-
-  await consumer.subscribe({
-    topic: "RecommendationsGenerated",
     fromBeginning: false,
   });
 
@@ -84,189 +120,63 @@ const runConsumer = async () => {
     fromBeginning: false,
   });
 
-  // ======================
-  // CONSUMER LOOP
-  // ======================
   await consumer.run({
     eachMessage: async ({ topic, message }) => {
-      let event;
-
       try {
-        event = JSON.parse(message.value.toString());
-        console.log("📩 RECEIVED EVENT:", event);
+        const event = JSON.parse(message.value.toString());
+
+        console.log(`📩 Kafka message from ${topic}:`, event);
+
+        await callback(event);
       } catch (err) {
-        console.error("Invalid JSON message:", err);
-        return;
-      }
-
-      const eventType = event.eventName || event.event;
-
-      try {
-        switch (eventType) {
-          case "SESSION_CREATED":
-            await prisma.notification.create({
-              data: {
-                userId: event.payload.userId,
-                message: "A study session has been created.",
-                type: "SESSION_CREATED",
-              },
-            });
-            break;
-
-          case "SESSION_UPDATED":
-            await prisma.notification.create({
-              data: {
-                userId: event.payload.userId,
-                message: "A study session has been updated.",
-                type: "SESSION_UPDATED",
-              },
-            });
-            break;
-
-          case "SESSION_INVITATION_RECEIVED":
-            await prisma.notification.create({
-              data: {
-                userId: event.payload.userId,
-                message: "You received a session invitation.",
-                type: "SESSION_INVITATION_RECEIVED",
-              },
-            });
-            break;
-
-          case "RecommendationsGenerated":
-            await prisma.notification.create({
-              data: {
-                userId: event.payload.userId,
-                message: `You have ${event.payload.recommendations.length} new study buddy recommendations!`,
-                type: "NEW_RECOMMENDATIONS",
-              },
-            });
-            break;
-
-          case "BuddyRequestCreated":
-            await prisma.notification.create({
-              data: {
-                userId: event.payload.toUserId,
-                message:
-                  "Someone wants to study with you! Check your buddy requests.",
-                type: "BUDDY_REQUEST_RECEIVED",
-              },
-            });
-            break;
-
-          case "MessageSent": {
-            const recipient =
-              event.payload.recipientId ||
-              event.payload.otherParticipant;
-
-            if (recipient) {
-              await prisma.notification.create({
-                data: {
-                  userId: recipient,
-                  message: `New message from ${
-                    event.payload.senderName || "a study buddy"
-                  }: ${event.payload.content?.substring(0, 50) || "New message"}${
-                    event.payload.content?.length > 50 ? "..." : ""
-                  }`,
-                  type: "MESSAGE_SENT",
-                },
-              });
-            }
-            break;
-          }
-
-          case "ConversationCreated":
-            if (event.payload.participant1Id) {
-              await prisma.notification.create({
-                data: {
-                  userId: event.payload.participant1Id,
-                  message:
-                    "A new conversation has started with your study buddy!",
-                  type: "CONVERSATION_STARTED",
-                },
-              });
-            }
-
-            if (event.payload.participant2Id) {
-              await prisma.notification.create({
-                data: {
-                  userId: event.payload.participant2Id,
-                  message:
-                    "A new conversation has started with your study buddy!",
-                  type: "CONVERSATION_STARTED",
-                },
-              });
-            }
-            break;
-
-          case "StudySessionCreated":
-            if (
-              Array.isArray(event.payload.possibleMemberIds)
-            ) {
-              await Promise.all(
-                event.payload.possibleMemberIds
-                  .filter((id) => id !== event.payload.creatorId)
-                  .map((memberId) =>
-                    prisma.notification.create({
-                      data: {
-                        userId: memberId,
-                        message: `You've been invited to join a study session: "${event.payload.topic}"`,
-                        type: "SESSION_INVITATION_RECEIVED",
-                      },
-                    })
-                  )
-              );
-            }
-            break;
-
-          case "InvitationResponded":
-            if (event.payload.creatorId) {
-              await prisma.notification.create({
-                data: {
-                  userId: event.payload.creatorId,
-                  message: `User ${event.payload.userId} responded to your invitation.`,
-                  type: "INVITATION_RESPONSE",
-                },
-              });
-            }
-            break;
-
-          case "SessionJoined":
-            if (event.payload.creatorId) {
-              await prisma.notification.create({
-                data: {
-                  userId: event.payload.creatorId,
-                  message: `User ${event.payload.userId} requested to join your session.`,
-                  type: "SESSION_JOINED",
-                },
-              });
-            }
-            break;
-
-          case "SessionCancelled":
-            if (Array.isArray(event.payload.participantIds)) {
-              await Promise.all(
-                event.payload.participantIds.map((id) =>
-                  prisma.notification.create({
-                    data: {
-                      userId: id,
-                      message: `A session was cancelled.`,
-                      type: "SESSION_CANCELLED",
-                    },
-                  })
-                )
-              );
-            }
-            break;
-
-          default:
-            console.log(`⚠️ Unknown event type: ${eventType}`);
-        }
-      } catch (err) {
-        console.error("❌ Error handling event:", err);
+        console.error("❌ Kafka message processing error:", err.message);
       }
     },
   });
-};
+}
 
-module.exports = { runConsumer };
+// ==============================
+// SEND EVENT
+// ==============================
+export async function sendEvent(eventName, payload) {
+  try {
+    await producer.send({
+      topic: "study-events",
+      messages: [
+        {
+          value: JSON.stringify({
+            event: eventName,
+            timestamp: new Date().toISOString(),
+            service: "messaging-service",
+            payload,
+          }),
+        },
+      ],
+    });
+
+    console.log("📤 Event sent to Kafka:", eventName);
+  } catch (err) {
+    console.error("❌ Kafka send failed:", err.message);
+  }
+}
+
+// ==============================
+// CLEANUP
+// ==============================
+export async function disconnectProducer() {
+  try {
+    await producer.disconnect();
+    console.log("✅ Producer disconnected");
+  } catch (err) {
+    console.error("❌ Producer disconnect error:", err.message);
+  }
+}
+
+export async function disconnectConsumer() {
+  try {
+    await consumer.disconnect();
+    console.log("✅ Consumer disconnected");
+  } catch (err) {
+    console.error("❌ Consumer disconnect error:", err.message);
+  }
+}
