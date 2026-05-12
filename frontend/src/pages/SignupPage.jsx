@@ -7,37 +7,117 @@ import "./SignupPage.css";
 
 function SignupPage() {
   const navigate = useNavigate();
+
   const [form, setForm] = useState({
     name: "",
     email: "",
     password: "",
   });
+
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [confirmError, setConfirmError] = useState("");
 
   const [registerUser] = useMutation(REGISTER_USER);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-  
-    if (confirmPassword && confirmPassword !== form.password) {
-      alert("Passwords do not match.");
+  const isValidEmail = (value) => /\S+@\S+\.\S+/.test(value);
+
+  const handleFormKeyDown = (e) => {
+    if (e.key !== "Enter") return;
+
+    const focusable = Array.from(
+      e.currentTarget.querySelectorAll("input, button[type='submit']"),
+    );
+
+    const activeElement = document.activeElement;
+
+    if (activeElement && activeElement.id === "signup-email") {
+      const trimmedEmail = form.email.trim();
+
+      if (!isValidEmail(trimmedEmail)) {
+        e.preventDefault();
+        setEmailError("Enter a valid email");
+        return;
+      }
+
+      setEmailError("");
+    }
+
+    if (activeElement && activeElement.id === "signup-confirm-password") {
+      if (confirmPassword && confirmPassword !== form.password) {
+        e.preventDefault();
+        setConfirmError("Passwords do not match");
+        return;
+      }
+
+      setConfirmError("");
+    }
+
+    const currentIndex = focusable.indexOf(document.activeElement);
+    const next = focusable[currentIndex + 1];
+
+    if (next && next.tagName === "BUTTON") {
+      e.preventDefault();
+      e.currentTarget.requestSubmit();
       return;
     }
-  
-    const res = await registerUser({ variables: form });
-  
-    const { token, user } = res.data.register;
-  
-    // Save everything needed by your pages
-    localStorage.setItem("token", token);
-    localStorage.setItem("userId", user.id);
-    localStorage.setItem("userName", user.name);
-    localStorage.setItem("userEmail", user.email);
-    // Also save as "user" object for the Header component
-    localStorage.setItem("user", JSON.stringify({ id: user.id, name: user.name, email: user.email }));
-  
-    // Go to onboarding instead of login
-    navigate("/profile-setup");
+
+    if (next) {
+      e.preventDefault();
+      next.focus();
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    const trimmedEmail = form.email.trim();
+
+    if (!isValidEmail(trimmedEmail)) {
+      setEmailError("Enter a valid email");
+      return;
+    }
+
+    setEmailError("");
+
+    if (confirmPassword && confirmPassword !== form.password) {
+      setConfirmError("Passwords do not match");
+      return;
+    }
+
+    setConfirmError("");
+
+    try {
+      const res = await registerUser({
+        variables: {
+          ...form,
+          email: trimmedEmail,
+        },
+      });
+
+      const { token, user } = res.data.register;
+
+      // Save user data
+      localStorage.setItem("token", token);
+      localStorage.setItem("userId", user.id);
+      localStorage.setItem("userName", user.name);
+      localStorage.setItem("userEmail", user.email);
+
+      // Save full user object for Header component
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+        }),
+      );
+
+      // Go to onboarding flow
+      navigate("/profile-setup");
+    } catch (error) {
+      console.error("Registration error:", error);
+    }
   };
 
   return (
@@ -47,7 +127,11 @@ function SignupPage() {
           <h1 className="signup-title">Create Your Account</h1>
         </div>
 
-        <form className="signup-card" onSubmit={handleSubmit}>
+        <form
+          className="signup-card"
+          onSubmit={handleSubmit}
+          onKeyDown={handleFormKeyDown}
+        >
           <h2 className="signup-card-title">
             Sign up to start finding study buddies
           </h2>
@@ -70,9 +154,19 @@ function SignupPage() {
             placeholder="Enter your email"
             autoComplete="email"
             value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
+            onChange={(e) => {
+              const value = e.target.value;
+
+              setForm({ ...form, email: value });
+
+              if (emailError && isValidEmail(value.trim())) {
+                setEmailError("");
+              }
+            }}
             required
           />
+
+          {emailError && <p className="signup-error">{emailError}</p>}
 
           <FormInput
             id="signup-password"
@@ -81,7 +175,13 @@ function SignupPage() {
             placeholder="Enter your password"
             autoComplete="new-password"
             value={form.password}
-            onChange={(e) => setForm({ ...form, password: e.target.value })}
+            onChange={(e) => {
+              setForm({ ...form, password: e.target.value });
+
+              if (confirmError && confirmPassword === e.target.value) {
+                setConfirmError("");
+              }
+            }}
             required
           />
 
@@ -92,9 +192,19 @@ function SignupPage() {
             placeholder="Confirm your password"
             autoComplete="new-password"
             value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value;
+
+              setConfirmPassword(value);
+
+              if (confirmError && value === form.password) {
+                setConfirmError("");
+              }
+            }}
             required
           />
+
+          {confirmError && <p className="signup-error">{confirmError}</p>}
 
           <button className="signup-button" type="submit">
             Create Account

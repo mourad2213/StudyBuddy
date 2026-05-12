@@ -265,10 +265,9 @@ body,
 }
 .availability-table {
   display: grid;
-  grid-template-columns: 140px repeat(7, 140px);
+  grid-template-columns: 170px repeat(7, 140px);
   gap: 28px 31px;
   align-items: center;
-
   width: max-content;
   margin: 0 auto; /* this centers the table */
 }
@@ -300,6 +299,8 @@ body,
   justify-content: center;
   font-size: 24px;
   font-family: "Playfair Display", Georgia, serif;
+  padding: 6px 8px;
+  box-sizing: border-box;
 }
 
 .empty-time-cell {
@@ -335,7 +336,7 @@ body,
 .availability-modal {
   position: relative;
   width: 600px;
-  height: 475px;
+  height: 560px;
   color: #000;
   overflow: hidden;
 
@@ -355,7 +356,7 @@ body,
   text-align: center;
 
   /* move title upward */
-  margin: 0px 0 92px;
+  margin: 8px 0 58px;
 
   color: #2e3d53;
   font-size: 50px;
@@ -369,15 +370,15 @@ body,
   align-items: center;
 
   /* controls spacing between Choose day and pick time */
-  margin: 36px 0 0;
+  margin: 32px 0 0;
 
-  padding-left: 16px;
+  padding-left: 36px;
   font-size: 39px;
   font-family: "Playfair Display", Georgia, serif;
 }
 
 .modal-line label {
-  min-width: 205px;
+  min-width: 210px;
 }
 
 .modal-line select,
@@ -385,9 +386,24 @@ body,
   border: none;
   background: transparent;
   font-family: "Playfair Display", Georgia, serif;
-  font-size: 34px;
+  font-size: 30px;
   color: #000;
   outline: none;
+}
+.modal-line select {
+  border: none;
+  background: #dcebf7;
+  color: #000;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 30px;
+  outline: none;
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.modal-line select option {
+  background: #dcebf7;
+  color: #000;
 }
 
 .modal-actions {
@@ -398,7 +414,7 @@ body,
   gap: 74px;
 
   /* smaller = buttons go up */
-  margin-top: 48px;
+  margin-top: 50px;
 }
 
 .cancel-modal-btn,
@@ -440,6 +456,39 @@ body,
   .day-cell {
     font-size: 20px;
   }
+}
+.reset-availability-btn {
+  background: #ead1dc;
+  color: #9b4f7f;
+  border: none;
+  border-radius: 7px;
+  padding: 13px 28px;
+  font-size: 22px;
+  font-family: "Playfair Display", Georgia, serif;
+  cursor: pointer;
+  margin-left: 18px;
+  margin-bottom: 34px;
+}
+
+.reset-availability-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.delete-slot-btn {
+  width: 148px;
+  height: 50px;
+  border: none;
+  border-radius: 7px;
+  background: #f0c7c7;
+  color: #9b2c2c;
+  font-size: 24px;
+  cursor: pointer;
+  font-family: "Playfair Display", Georgia, serif;
+}
+
+.edit-modal-actions {
+  gap: 35px;
 }
 
 /* notification */

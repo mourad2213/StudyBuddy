@@ -64,6 +64,13 @@
   margin-top: -2px;
 }
 
+.login-error {
+  margin: 2px 0 6px;
+  font-size: 12px;
+  color: #b33a3a;
+  font-family: var(--font-inter);
+}
+
 .login-forgot:hover {
   text-decoration: underline;
 }

@@ -1,16 +1,20 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import "./Header.css";
 
 export default function Header() {
   const location = useLocation();
+  const navigate = useNavigate();
+
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
   useEffect(() => {
     // Check if user is logged in from localStorage whenever the route changes
     const storedUser = localStorage.getItem("user");
+
     if (storedUser) {
       try {
         const userData = JSON.parse(storedUser);
@@ -37,12 +41,21 @@ export default function Header() {
     setIsMenuOpen(false);
   };
 
+  const toggleProfileMenu = () => {
+    setIsProfileMenuOpen(!isProfileMenuOpen);
+  };
+
+  const closeProfileMenu = () => {
+    setIsProfileMenuOpen(false);
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("user");
     localStorage.removeItem("token");
+
     setIsLoggedIn(false);
     setUser(null);
-    // Optionally redirect to login page
+
     window.location.href = "/";
   };
 
@@ -65,13 +78,20 @@ export default function Header() {
           <Link to={homeLink} className="nav-link" onClick={closeMenu}>
             Home
           </Link>
-          <Link to="/" className="nav-link" onClick={closeMenu}>
-            Find Buddy
-          </Link>
-          <Link to="/sessions" className="nav-link" onClick={closeMenu}>
-            Sessions
-          </Link>
-          <Link to="/" className="nav-link" onClick={closeMenu}>
+
+          {isLoggedIn && (
+            <>
+              <Link to="/" className="nav-link" onClick={closeMenu}>
+                Find Buddy
+              </Link>
+
+              <Link to="/sessions" className="nav-link" onClick={closeMenu}>
+                Sessions
+              </Link>
+            </>
+          )}
+
+          <Link to="/about-us" className="nav-link" onClick={closeMenu}>
             About Us
           </Link>
         </nav>
@@ -82,6 +102,7 @@ export default function Header() {
               <Link to="/login" className="btn btn-login">
                 Log In
               </Link>
+
               <Link to="/signup" className="btn btn-signup">
                 Sign Up
               </Link>
@@ -91,6 +112,7 @@ export default function Header() {
               <Link to="/login" className="btn btn-login-mobile">
                 Log In
               </Link>
+
               <Link to="/signup" className="btn btn-signup-mobile">
                 Sign Up
               </Link>
@@ -101,6 +123,7 @@ export default function Header() {
             <span className="user-greeting">
               Hi, {user?.name || user?.username || "User"}
             </span>
+
             <Link
               to="/user-profile"
               className="profile-icon-btn"
@@ -121,7 +144,12 @@ export default function Header() {
                 />
               </svg>
             </Link>
-            <button className="notification-btn" aria-label="Notifications">
+
+            <button
+              className="notification-btn"
+              aria-label="Notifications"
+              onClick={() => navigate("/notifications")}
+            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -137,26 +165,49 @@ export default function Header() {
                 />
               </svg>
             </button>
-            <button
-              className="logout-btn"
-              onClick={handleLogout}
-              aria-label="Logout"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth="1.5"
-                stroke="currentColor"
-                className="svg-icon"
+
+            <div className="menu-dropdown-wrap">
+              <button
+                type="button"
+                className="menu-dots-btn"
+                aria-label="Open profile menu"
+                aria-haspopup="menu"
+                aria-expanded={isProfileMenuOpen}
+                onClick={toggleProfileMenu}
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0 3 3m-3-3h12.75"
-                />
-              </svg>
-            </button>
+                <span className="menu-dot"></span>
+                <span className="menu-dot"></span>
+                <span className="menu-dot"></span>
+              </button>
+
+              {isProfileMenuOpen && (
+                <div className="menu-dropdown" role="menu">
+                  <button
+                    type="button"
+                    className="menu-item"
+                    role="menuitem"
+                    onClick={() => {
+                      closeProfileMenu();
+                      navigate("/requests");
+                    }}
+                  >
+                    My Buddy Requests
+                  </button>
+
+                  <button
+                    type="button"
+                    className="menu-item"
+                    role="menuitem"
+                    onClick={() => {
+                      closeProfileMenu();
+                      handleLogout();
+                    }}
+                  >
+                    Log out
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         )}
 

@@ -11,13 +11,65 @@ function LoginPage() {
     email: "",
     password: "",
   });
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
 
   const [loginUser] = useMutation(LOGIN_USER);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const isValidEmail = (value) => /\S+@\S+\.\S+/.test(value);
 
-    const res = await loginUser({ variables: form });
+  const handleFormKeyDown = (e) => {
+    if (e.key !== "Enter") return;
+
+    const focusable = Array.from(
+      e.currentTarget.querySelectorAll("input, button[type='submit']"),
+    );
+    const activeElement = document.activeElement;
+
+    if (activeElement && activeElement.id === "login-email") {
+      const trimmedEmail = form.email.trim();
+      if (!isValidEmail(trimmedEmail)) {
+        e.preventDefault();
+        setEmailError("Enter a valid email");
+        return;
+      }
+      setEmailError("");
+    }
+
+    const currentIndex = focusable.indexOf(document.activeElement);
+    const next = focusable[currentIndex + 1];
+
+    if (next && next.tagName === "BUTTON") {
+      e.preventDefault();
+      e.currentTarget.requestSubmit();
+      return;
+    }
+
+    if (next) {
+      e.preventDefault();
+      next.focus();
+    }
+  };
+
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  const trimmedEmail = form.email.trim();
+  if (!isValidEmail(trimmedEmail)) {
+    setEmailError("Enter a valid email");
+    return;
+  }
+
+  setEmailError("");
+  setPasswordError("");
+
+  try {
+    const res = await loginUser({
+      variables: {
+        email: trimmedEmail,
+        password: form.password,
+      },
+    });
 
     const { token, user } = res.data.login;
 
@@ -25,19 +77,18 @@ function LoginPage() {
     localStorage.setItem("userId", user.id);
     localStorage.setItem("userName", user.name);
     localStorage.setItem("userEmail", user.email);
-    localStorage.setItem(
-      "user",
-      JSON.stringify({ id: user.id, name: user.name, email: user.email }),
-    );
+    localStorage.setItem("user", JSON.stringify({ id: user.id, name: user.name, email: user.email }));
 
-    // If onboarding not done, send to profile setup. Otherwise go home.
     const onboardingDone = localStorage.getItem("onboardingDone");
     if (!onboardingDone) {
       navigate("/profile-setup");
     } else {
       navigate("/dashboard");
     }
-  };
+  } catch (error) {
+    setPasswordError("Incorrect password");
+  }
+};
 
   return (
     <div className="login-page">
@@ -46,7 +97,11 @@ function LoginPage() {
           <h1 className="login-title">Welcome Back</h1>
         </div>
 
-        <form className="login-card" onSubmit={handleSubmit}>
+        <form
+          className="login-card"
+          onSubmit={handleSubmit}
+          onKeyDown={handleFormKeyDown}
+        >
           <h2 className="login-card-title">
             Log in to continue finding study buddies
           </h2>
@@ -57,9 +112,15 @@ function LoginPage() {
             placeholder="Enter your email"
             autoComplete="email"
             value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
+            onChange={(e) => {
+              setForm({ ...form, email: e.target.value });
+              if (emailError && isValidEmail(e.target.value.trim())) {
+                setEmailError("");
+              }
+            }}
             required
           />
+          {emailError && <p className="login-error">{emailError}</p>}
 
           <FormInput
             id="login-password"
@@ -68,9 +129,15 @@ function LoginPage() {
             placeholder="Enter your password"
             autoComplete="current-password"
             value={form.password}
-            onChange={(e) => setForm({ ...form, password: e.target.value })}
+            onChange={(e) => {
+              setForm({ ...form, password: e.target.value });
+              if (passwordError) {
+                setPasswordError("");
+              }
+            }}
             required
           />
+          {passwordError && <p className="login-error">{passwordError}</p>}
 
           <a className="login-forgot" href="#">
             Forgot password?
