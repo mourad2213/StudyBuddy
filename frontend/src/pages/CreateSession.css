@@ -10,7 +10,8 @@ body {
 .page-title {
   font-size: 52px;
   color: #24395a;
-  margin-bottom: 12px;
+  padding-top: 30px;
+  font-family: "Playfair Display";
   padding-bottom: 40px;
   text-align: left;
   font-weight: 700;

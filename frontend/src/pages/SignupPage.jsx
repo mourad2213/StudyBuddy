@@ -29,6 +29,8 @@ function SignupPage() {
     });
 
     localStorage.setItem("token", res.data.register.token);
+    localStorage.setItem("username", res.data.register.user.name);
+    localStorage.setItem("userid", res.data.register.user.id);
 
     //alert("Registered!");
     navigate("/login");
