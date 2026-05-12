@@ -19,7 +19,7 @@ const getBrokerConfig = () => {
     return {
       ...baseConfig,
       ssl: {
-        rejectUnauthorized: true,
+        rejectUnauthorized: false,
       },
       sasl: {
         mechanism: 'plain',
