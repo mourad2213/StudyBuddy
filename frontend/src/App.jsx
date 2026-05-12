@@ -9,6 +9,9 @@ import Sessions from "./pages/Sessions";
 import CreateSession from "./pages/CreateSession";
 import FriendRequests from "./pages/FriendRequests";
 import ChatApp from "./pages/ChatApp";
+import AvailabilityPage from "./pages/AvailabilityPage.jsx";
+import NotificationsPage from "./pages/NotificationsPage.jsx";
+
 
 
 function App() {
@@ -24,6 +27,9 @@ function App() {
         <Route path="/sessions" element={<Sessions />} />
         <Route path="/create-session" element={<CreateSession />} />
         <Route path="/chat" element={<ChatApp />} />
+        <Route path="/availability" element={<AvailabilityPage />} />
+        <Route path="/notifications" element={<NotificationsPage />} />
+
       </Routes>
       <Footer />
     </BrowserRouter>

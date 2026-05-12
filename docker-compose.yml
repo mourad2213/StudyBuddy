@@ -90,6 +90,8 @@ services:
   # =======================
   availability-service:
     build: ./services/availability-service
+    env_file:
+    - ./services/availability-service/.env
     ports:
       - "4002:4002"
     environment:
@@ -97,7 +99,7 @@ services:
       SERVICE_NAME: availability-service
       DATABASE_URL: postgresql://neondb_owner:npg_a7hwVX5msfHg@ep-wandering-shadow-anmfx1jj-pooler.c-6.us-east-1.aws.neon.tech/Availability_db?sslmode=require&channel_binding=require
       KAFKA_BROKER: kafka:29092
-      JWT_SECRET: your-secret-key-here
+      JWT_SECRET: supersecret
       NODE_ENV: development
     depends_on:
       kafka:
