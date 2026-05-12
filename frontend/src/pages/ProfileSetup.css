@@ -109,6 +109,7 @@
   font-weight: 500;
 }
 
+/* Major input — same height as the dropdown button */
 .ps-field input {
   padding: 0.55rem 0.8rem;
   border: 1.5px solid #ccc;
@@ -119,6 +120,8 @@
   outline: none;
   transition: border-color 0.2s;
   font-family: inherit;
+  height: auto;
+  box-sizing: border-box;
 }
 
 .ps-field input:focus {
@@ -216,6 +219,93 @@
 
 .ps-skip-btn:hover {
   color: #555;
+}
+
+/* Styles for dynamic input lists */
+.input-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.input-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.input-item input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.55rem 0.8rem;
+  border: 1.5px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background: #faf9f7;
+  color: #333;
+  outline: none;
+  transition: border-color 0.2s;
+  font-family: inherit;
+  height: 2.4rem;
+  box-sizing: border-box;
+}
+
+.input-item input:focus {
+  border-color: #1b2a3b;
+}
+
+.add-btn,
+.remove-btn {
+  width: 1.9rem;
+  height: 1.9rem;
+  border: 1.5px solid #ccc;
+  border-radius: 5px;
+  background: #faf9f7;
+  color: #555;
+  font-size: 0.95rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.add-btn:hover,
+.remove-btn:hover {
+  background: #f0ebe3;
+  border-color: #bbb;
+}
+
+.remove-btn:active,
+.add-btn:active {
+  background: #e0d9d0;
+}
+
+/* Position the add button to the right */
+.input-list > .add-btn {
+  margin-left: 0;
+}
+
+/* On small screens, make inputs full width and button below */
+@media (max-width: 480px) {
+  .input-item {
+    flex: 1 1 100%;
+  }
+
+  .input-item input {
+    width: 100%;
+  }
+
+  .input-list > .add-btn {
+    margin-left: auto;
+  }
 }
 
 @media (max-width: 768px) {

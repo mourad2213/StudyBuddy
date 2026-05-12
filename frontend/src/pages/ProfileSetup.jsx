@@ -59,8 +59,8 @@ export default function ProfileSetup() {
   const [form, setForm] = useState({
     major: "",
     academicYear: "",
-    courses: "",
-    studyTopics: "",
+    courses: [""], // Start with one empty input
+    studyTopics: [""],
   });
   const [yearOpen, setYearOpen] = useState(false);
   const [error, setError] = useState("");
@@ -98,20 +98,18 @@ export default function ProfileSetup() {
       const profileId = data.createProfile.id;
       localStorage.setItem("profileId", profileId);
 
-      // Add courses one by one
+      // Add courses (filter out empty strings)
       const courseList = form.courses
-        .split(",")
-        .map((c) => c.trim())
-        .filter(Boolean);
+        .filter((c) => c.trim() !== "")
+        .map((c) => c.trim());
       for (const name of courseList) {
         await addCourse({ variables: { profileId, name } });
       }
 
-      // Add topics one by one
+      // Add topics (filter out empty strings)
       const topicList = form.studyTopics
-        .split(",")
-        .map((t) => t.trim())
-        .filter(Boolean);
+        .filter((t) => t.trim() !== "")
+        .map((t) => t.trim());
       for (const name of topicList) {
         await addTopic({ variables: { profileId, name } });
       }
@@ -125,6 +123,59 @@ export default function ProfileSetup() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAddCourse = () => {
+    setForm((prev) => ({
+      ...prev,
+      courses: [...prev.courses, ""],
+    }));
+  };
+
+  const handleRemoveCourse = (index) => {
+    setForm((prev) => {
+      const newCourses = [...prev.courses];
+      newCourses.splice(index, 1);
+      // Ensure at least one input remains
+      if (newCourses.length === 0) {
+        return { ...prev, courses: [""] };
+      }
+      return { ...prev, courses: newCourses };
+    });
+  };
+
+  const handleAddTopic = () => {
+    setForm((prev) => ({
+      ...prev,
+      studyTopics: [...prev.studyTopics, ""],
+    }));
+  };
+
+  const handleRemoveTopic = (index) => {
+    setForm((prev) => {
+      const newTopics = [...prev.studyTopics];
+      newTopics.splice(index, 1);
+      if (newTopics.length === 0) {
+        return { ...prev, studyTopics: [""] };
+      }
+      return { ...prev, studyTopics: newTopics };
+    });
+  };
+
+  const handleCourseChange = (index, value) => {
+    setForm((prev) => {
+      const newCourses = [...prev.courses];
+      newCourses[index] = value;
+      return { ...prev, courses: newCourses };
+    });
+  };
+
+  const handleTopicChange = (index, value) => {
+    setForm((prev) => {
+      const newTopics = [...prev.studyTopics];
+      newTopics[index] = value;
+      return { ...prev, studyTopics: newTopics };
+    });
   };
 
   return (
@@ -188,24 +239,58 @@ export default function ProfileSetup() {
 
             <div className="ps-field">
               <label>Courses</label>
-              <input
-                type="text"
-                placeholder="Enter your courses (comma separated, e.g. Math, Physics)"
-                value={form.courses}
-                onChange={(e) => setForm({ ...form, courses: e.target.value })}
-              />
+              <div className="input-list">
+                {form.courses.map((course, index) => (
+                  <div key={index} className="input-item">
+                    <input
+                      type="text"
+                      placeholder="Enter a course"
+                      value={course}
+                      onChange={(e) => handleCourseChange(index, e.target.value)}
+                    />
+                    {form.courses.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveCourse(index)}
+                        className="remove-btn"
+                      >
+                        -
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button type="button" onClick={handleAddCourse} className="add-btn">
+                  +
+                </button>
+              </div>
             </div>
 
             <div className="ps-field">
               <label>Study Topics</label>
-              <input
-                type="text"
-                placeholder="Enter your study topics (comma separated)"
-                value={form.studyTopics}
-                onChange={(e) =>
-                  setForm({ ...form, studyTopics: e.target.value })
-                }
-              />
+              <div className="input-list">
+                {form.studyTopics.map((topic, index) => (
+                  <div key={index} className="input-item">
+                    <input
+                      type="text"
+                      placeholder="Enter a study topic"
+                      value={topic}
+                      onChange={(e) => handleTopicChange(index, e.target.value)}
+                    />
+                    {form.studyTopics.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveTopic(index)}
+                        className="remove-btn"
+                      >
+                        -
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button type="button" onClick={handleAddTopic} className="add-btn">
+                  +
+                </button>
+              </div>
             </div>
 
             <button type="submit" className="ps-save-btn" disabled={loading}>
