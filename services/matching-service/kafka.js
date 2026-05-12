@@ -41,12 +41,43 @@ export async function connectProducer() {
 }
 
 export async function subscribeToEvents() {
-  await consumer.subscribe({ topic: MATCHING_EVENTS.USER_PREFERENCES_UPDATED, fromBeginning: false });
-  await consumer.subscribe({ topic: MATCHING_EVENTS.AVAILABILITY_CREATED, fromBeginning: false });
-  await consumer.subscribe({ topic: MATCHING_EVENTS.AVAILABILITY_UPDATED, fromBeginning: false });
-  await consumer.subscribe({ topic: MATCHING_EVENTS.AVAILABILITY_DELETED, fromBeginning: false });
-  await consumer.subscribe({ topic: MATCHING_EVENTS.BUDDY_REQUEST_CREATED, fromBeginning: false });
-  console.log('Matching service subscribed to events');
+  const topics = [
+    MATCHING_EVENTS.USER_PREFERENCES_UPDATED,
+    MATCHING_EVENTS.AVAILABILITY_CREATED,
+    MATCHING_EVENTS.AVAILABILITY_UPDATED,
+    MATCHING_EVENTS.AVAILABILITY_DELETED,
+    MATCHING_EVENTS.BUDDY_REQUEST_CREATED,
+  ];
+
+  for (const topic of topics) {
+    let retries = 10;
+
+    while (retries > 0) {
+      try {
+        await consumer.subscribe({
+          topic,
+          fromBeginning: false,
+        });
+
+        console.log(`Subscribed to topic: ${topic}`);
+        break;
+      } catch (error) {
+        retries--;
+
+        console.log(
+          `Kafka topic ${topic} not ready yet. Retrying... (${retries} left)`
+        );
+
+        if (retries === 0) {
+          throw error;
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+      }
+    }
+  }
+
+  console.log("Matching service subscribed to events");
 }
 
 export async function consumeEvents(handler) {
