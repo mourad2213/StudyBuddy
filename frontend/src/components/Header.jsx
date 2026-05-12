@@ -1,14 +1,15 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import "./Header.css";
 
 export default function Header() {
+  const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    // Check if user is logged in from localStorage
+    // Check if user is logged in from localStorage whenever the route changes
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
       try {
@@ -17,9 +18,14 @@ export default function Header() {
         setIsLoggedIn(true);
       } catch (e) {
         console.error("Error parsing stored user data:", e);
+        setUser(null);
+        setIsLoggedIn(false);
       }
+    } else {
+      setUser(null);
+      setIsLoggedIn(false);
     }
-  }, []);
+  }, [location.pathname]);
 
   const homeLink = isLoggedIn ? "/dashboard" : "/";
 
