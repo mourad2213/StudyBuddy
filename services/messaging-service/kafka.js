@@ -1,9 +1,34 @@
 import { Kafka } from "kafkajs";
 
-const kafka = new Kafka({
-  clientId: "messaging-service",
-  brokers: [process.env.KAFKA_BROKER || "kafka:29092"],
-});
+const getBrokerConfig = () => {
+  const broker = process.env.KAFKA_BROKER;
+
+  if (!broker) {
+    throw new Error("KAFKA_BROKER environment variable is not set");
+  }
+
+  const baseConfig = {
+    clientId: "messaging-service",
+    brokers: [broker],
+  };
+
+  // Add SSL/SASL only if credentials are provided (managed cloud Kafka)
+  if (process.env.KAFKA_USERNAME && process.env.KAFKA_PASSWORD) {
+    return {
+      ...baseConfig,
+      ssl: true,
+      sasl: {
+        mechanism: "scram-sha-256",
+        username: process.env.KAFKA_USERNAME,
+        password: process.env.KAFKA_PASSWORD,
+      },
+    };
+  }
+
+  return baseConfig;
+};
+
+const kafka = new Kafka(getBrokerConfig());
 
 const producer = kafka.producer();
 const consumer = kafka.consumer({ groupId: "messaging-service-group" });
