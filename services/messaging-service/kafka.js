@@ -1,19 +1,40 @@
 import { Kafka, logLevel } from "kafkajs";
 
 // ==============================
-// VALIDATE BROKERS (IMPORTANT)
+// VALIDATE REQUIRED AIVEN CONFIGURATION
 // ==============================
-const brokers = (process.env.KAFKA_BROKERS || "")
+const validateKafkaConfig = () => {
+  const brokers = process.env.KAFKA_BROKERS?.trim();
+  const username = process.env.KAFKA_USERNAME?.trim();
+  const password = process.env.KAFKA_PASSWORD?.trim();
+
+  if (!brokers) {
+    throw new Error(
+      "KAFKA_BROKERS environment variable is required (comma-separated: host1:9092,host2:9092)"
+    );
+  }
+
+  if (!username || !password) {
+    throw new Error(
+      "KAFKA_USERNAME and KAFKA_PASSWORD environment variables are required for Aiven"
+    );
+  }
+
+  return { brokers, username, password };
+};
+
+const { brokers: brokerString, username, password } = validateKafkaConfig();
+const brokers = brokerString
   .split(",")
   .map((b) => b.trim())
   .filter(Boolean);
 
 if (brokers.length === 0) {
-  throw new Error("❌ KAFKA_BROKERS is not set correctly");
+  throw new Error("No valid brokers found after parsing KAFKA_BROKERS");
 }
 
 // ==============================
-// KAFKA CLIENT (AIVEN READY)
+// KAFKA CLIENT (AIVEN ONLY)
 // ==============================
 const kafka = new Kafka({
   clientId: "messaging-service",
@@ -21,25 +42,23 @@ const kafka = new Kafka({
 
   logLevel: logLevel.INFO,
 
-  // ==============================
-  // AIVEN SSL CONFIG
-  // ==============================
-  ssl:
-    process.env.KAFKA_USERNAME && process.env.KAFKA_PASSWORD
-      ? true
-      : false,
+  // ✅ ALWAYS use SSL for Aiven
+  ssl: true,
 
-  // ==============================
-  // AIVEN SASL AUTH
-  // ==============================
-  sasl:
-    process.env.KAFKA_USERNAME && process.env.KAFKA_PASSWORD
-      ? {
-          mechanism: "plain",
-          username: process.env.KAFKA_USERNAME,
-          password: process.env.KAFKA_PASSWORD,
-        }
-      : undefined,
+  // ✅ ALWAYS use SASL plain for Aiven
+  sasl: {
+    mechanism: "plain",
+    username,
+    password,
+  },
+
+  // Retry configuration
+  retry: {
+    initialRetryTime: 300,
+    retries: 8,
+    maxRetryTime: 30000,
+    multiplier: 2,
+  },
 });
 
 // ==============================
@@ -59,20 +78,21 @@ export async function connectProducer() {
   while (retries > 0) {
     try {
       await producer.connect();
-      console.log("✅ Kafka Producer Connected");
+      console.log("✅ Kafka Producer Connected (messaging-service)");
       return;
     } catch (err) {
       retries--;
 
       console.log(
-        `⏳ Kafka Producer not ready, retrying in 5s... (${retries} retries left)`
+        `⏳ Producer not ready, retrying in 5s... (${retries} retries left)`
       );
       console.error(err.message);
 
       await new Promise((res) => setTimeout(res, 5000));
 
       if (retries === 0) {
-        console.error("❌ Producer failed to connect to Kafka");
+        console.error("❌ Producer failed to connect to Kafka after retries");
+        throw new Error("Failed to connect Kafka producer");
       }
     }
   }
@@ -87,20 +107,21 @@ export async function connectConsumer() {
   while (retries > 0) {
     try {
       await consumer.connect();
-      console.log("✅ Kafka Consumer Connected");
+      console.log("✅ Kafka Consumer Connected (messaging-service)");
       return;
     } catch (err) {
       retries--;
 
       console.log(
-        `⏳ Kafka Consumer not ready, retrying in 5s... (${retries} retries left)`
+        `⏳ Consumer not ready, retrying in 5s... (${retries} retries left)`
       );
       console.error(err.message);
 
       await new Promise((res) => setTimeout(res, 5000));
 
       if (retries === 0) {
-        console.error("❌ Consumer failed to connect to Kafka");
+        console.error("❌ Consumer failed to connect to Kafka after retries");
+        throw new Error("Failed to connect Kafka consumer");
       }
     }
   }
@@ -140,23 +161,32 @@ export async function subscribeToEvents(callback) {
 // ==============================
 export async function sendEvent(eventName, payload) {
   try {
+    const message = {
+      event: eventName,
+      timestamp: new Date().toISOString(),
+      service: "messaging-service",
+      payload,
+    };
+
     await producer.send({
       topic: "study-events",
       messages: [
         {
-          value: JSON.stringify({
-            event: eventName,
-            timestamp: new Date().toISOString(),
+          key: payload.userId || "messaging-event",
+          value: JSON.stringify(message),
+          headers: {
+            "content-type": "application/json",
             service: "messaging-service",
-            payload,
-          }),
+          },
         },
       ],
     });
 
     console.log("📤 Event sent to Kafka:", eventName);
+    return message;
   } catch (err) {
     console.error("❌ Kafka send failed:", err.message);
+    throw err;
   }
 }
 

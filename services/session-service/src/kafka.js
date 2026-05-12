@@ -1,33 +1,58 @@
 const { Kafka, logLevel } = require("kafkajs");
 
+// ============================================
+// VALIDATE REQUIRED AIVEN CONFIGURATION
+// ============================================
+const validateKafkaConfig = () => {
+  const brokers = process.env.KAFKA_BROKERS?.trim();
+  const username = process.env.KAFKA_USERNAME?.trim();
+  const password = process.env.KAFKA_PASSWORD?.trim();
+
+  if (!brokers) {
+    throw new Error(
+      "KAFKA_BROKERS environment variable is required (comma-separated: host1:9092,host2:9092)"
+    );
+  }
+
+  if (!username || !password) {
+    throw new Error(
+      "KAFKA_USERNAME and KAFKA_PASSWORD environment variables are required for Aiven"
+    );
+  }
+
+  return { brokers, username, password };
+};
+
+const { brokers: brokerString, username, password } = validateKafkaConfig();
+const brokers = brokerString
+  .split(",")
+  .map((b) => b.trim())
+  .filter(Boolean);
+
+if (brokers.length === 0) {
+  throw new Error("No valid brokers found after parsing KAFKA_BROKERS");
+}
+
+// ============================================
+// KAFKA CLIENT - AIVEN ONLY
+// ============================================
 const kafka = new Kafka({
   clientId: "session-service",
-
-  // ✅ Aiven / cloud / k8s multi-broker support
-  brokers: process.env.KAFKA_BROKERS
-    ? process.env.KAFKA_BROKERS.split(",").map((b) => b.trim())
-    : ["localhost:9092"],
+  brokers,
 
   logLevel: logLevel.INFO,
 
-  // ✅ Aiven SSL
-  ssl:
-    process.env.KAFKA_USERNAME && process.env.KAFKA_PASSWORD
-      ? {
-          rejectUnauthorized: false,
-        }
-      : false,
+  // ✅ ALWAYS use SSL for Aiven
+  ssl: true,
 
-  // ✅ Aiven SASL
-  sasl:
-    process.env.KAFKA_USERNAME && process.env.KAFKA_PASSWORD
-      ? {
-          mechanism: "plain",
-          username: process.env.KAFKA_USERNAME,
-          password: process.env.KAFKA_PASSWORD,
-        }
-      : undefined,
+  // ✅ ALWAYS use SASL plain for Aiven
+  sasl: {
+    mechanism: "plain",
+    username,
+    password,
+  },
 
+  // Retry configuration
   retry: {
     initialRetryTime: 300,
     retries: 8,
@@ -48,28 +73,33 @@ const consumer = kafka.consumer({
 let isProducerConnected = false;
 let isConsumerConnected = false;
 
-// ======================
-// PRODUCER
-// ======================
+// ============================================
+// PRODUCER CONNECTION
+// ============================================
 const connectProducer = async () => {
   if (isProducerConnected) return;
 
-  try {
-    const connectPromise = producer.connect();
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("Kafka connection timeout")), 5000)
-    );
+  let retries = 10;
 
-    await Promise.race([connectPromise, timeoutPromise]);
+  while (retries > 0) {
+    try {
+      await producer.connect();
+      isProducerConnected = true;
+      console.log("✅ Kafka producer connected (session-service)");
+      return;
+    } catch (error) {
+      retries--;
+      console.log(
+        `⏳ Producer not ready, retrying in 5s... (${retries} retries left)`
+      );
+      console.error(error.message);
+      await new Promise((res) => setTimeout(res, 5000));
 
-    isProducerConnected = true;
-    console.log("✅ Kafka producer connected");
-  } catch (error) {
-    console.warn(
-      "⚠️ Kafka producer not available:",
-      error.message
-    );
-    isProducerConnected = false;
+      if (retries === 0) {
+        console.error("❌ Producer failed to connect to Kafka after retries");
+        throw new Error("Failed to connect Kafka producer");
+      }
+    }
   }
 };
 
@@ -85,6 +115,51 @@ const disconnectProducer = async () => {
   }
 };
 
+// ============================================
+// CONSUMER CONNECTION
+// ============================================
+const connectConsumer = async () => {
+  if (isConsumerConnected) return;
+
+  let retries = 10;
+
+  while (retries > 0) {
+    try {
+      await consumer.connect();
+      isConsumerConnected = true;
+      console.log("✅ Kafka consumer connected (session-service)");
+      return;
+    } catch (error) {
+      retries--;
+      console.log(
+        `⏳ Consumer not ready, retrying in 5s... (${retries} retries left)`
+      );
+      console.error(error.message);
+      await new Promise((res) => setTimeout(res, 5000));
+
+      if (retries === 0) {
+        console.error("❌ Consumer failed to connect to Kafka after retries");
+        throw new Error("Failed to connect Kafka consumer");
+      }
+    }
+  }
+};
+
+const disconnectConsumer = async () => {
+  if (!isConsumerConnected) return;
+
+  try {
+    await consumer.disconnect();
+    isConsumerConnected = false;
+    console.log("✅ Kafka consumer disconnected");
+  } catch (error) {
+    console.error("❌ Consumer disconnect failed:", error.message);
+  }
+};
+
+// ============================================
+// PUBLISH EVENTS
+// ============================================
 const publishEvent = async (topic, eventName, data) => {
   if (!isProducerConnected) {
     console.log(`📝 Kafka OFFLINE event: ${eventName}`, data);
@@ -119,39 +194,13 @@ const publishEvent = async (topic, eventName, data) => {
     return event;
   } catch (error) {
     console.warn(`⚠️ Publish failed: ${eventName}`, error.message);
-    return { eventName, error: true };
-  }
-};
-
-// ======================
-// CONSUMER
-// ======================
-const connectConsumer = async () => {
-  if (isConsumerConnected) return;
-
-  try {
-    await consumer.connect();
-    isConsumerConnected = true;
-    console.log("✅ Kafka consumer connected");
-  } catch (error) {
-    console.error("❌ Consumer connect failed:", error.message);
     throw error;
   }
 };
 
-const disconnectConsumer = async () => {
-  if (!isConsumerConnected) return;
-
-  try {
-    await consumer.disconnect();
-    isConsumerConnected = false;
-    console.log("✅ Kafka consumer disconnected");
-  } catch (error) {
-    console.error("❌ Consumer disconnect failed:", error.message);
-  }
-};
-
-// FIXED: KafkaJS does NOT support { topics: [] } in subscribe
+// ============================================
+// SUBSCRIBE TO EVENTS
+// ============================================
 const subscribeToEvents = async (topics, messageHandler) => {
   try {
     await connectConsumer();

@@ -3,63 +3,110 @@ const { PrismaClient } = require("@prisma/client");
 
 const prisma = new PrismaClient();
 
+// ============================================
+// VALIDATE REQUIRED AIVEN CONFIGURATION
+// ============================================
+const validateKafkaConfig = () => {
+  const brokers = process.env.KAFKA_BROKERS?.trim();
+  const username = process.env.KAFKA_USERNAME?.trim();
+  const password = process.env.KAFKA_PASSWORD?.trim();
+
+  if (!brokers) {
+    throw new Error(
+      "KAFKA_BROKERS environment variable is required (comma-separated: host1:9092,host2:9092)"
+    );
+  }
+
+  if (!username || !password) {
+    throw new Error(
+      "KAFKA_USERNAME and KAFKA_PASSWORD environment variables are required for Aiven"
+    );
+  }
+
+  return { brokers, username, password };
+};
+
+const { brokers: brokerString, username, password } = validateKafkaConfig();
+const brokers = brokerString
+  .split(",")
+  .map((b) => b.trim())
+  .filter(Boolean);
+
+if (brokers.length === 0) {
+  throw new Error("No valid brokers found after parsing KAFKA_BROKERS");
+}
+
+// ============================================
+// KAFKA CLIENT - AIVEN ONLY
+// ============================================
 const kafka = new Kafka({
   clientId: "notification-service",
+  brokers,
 
-  // ✅ Aiven / production multi-broker support
-  brokers: process.env.KAFKA_BROKERS
-    ? process.env.KAFKA_BROKERS.split(",")
-    : ["localhost:9092"],
+  // ✅ ALWAYS use SSL for Aiven
+  ssl: true,
 
-  // ✅ Aiven SSL
-  ssl:
-    process.env.KAFKA_USERNAME && process.env.KAFKA_PASSWORD
-      ? {
-          rejectUnauthorized: false,
-        }
-      : false,
+  // ✅ ALWAYS use SASL plain for Aiven
+  sasl: {
+    mechanism: "plain",
+    username,
+    password,
+  },
 
-  // ✅ Aiven SASL auth
-  sasl:
-    process.env.KAFKA_USERNAME && process.env.KAFKA_PASSWORD
-      ? {
-          mechanism: "plain",
-          username: process.env.KAFKA_USERNAME,
-          password: process.env.KAFKA_PASSWORD,
-        }
-      : undefined,
+  // Retry configuration
+  retry: {
+    initialRetryTime: 300,
+    retries: 8,
+    maxRetryTime: 30000,
+    multiplier: 2,
+  },
 });
 
 const consumer = kafka.consumer({
   groupId: "notification-group",
 });
 
-const runConsumer = async () => {
+// ============================================
+// CONSUMER CONNECTION
+// ============================================
+const connectConsumer = async () => {
   let retries = 10;
 
   while (retries > 0) {
     try {
       await consumer.connect();
-      console.log("✅ Kafka consumer connected");
-      break;
+      console.log("✅ Kafka consumer connected (notification-service)");
+      return;
     } catch (err) {
       retries--;
-
       console.log(
-        `⏳ Kafka not ready, retrying in 5s... (${retries} retries left)`
+        `⏳ Consumer not ready, retrying in 5s... (${retries} retries left)`
       );
       console.error(err.message);
-
       await new Promise((res) => setTimeout(res, 5000));
 
       if (retries === 0) {
-        console.error(
-          "❌ Could not connect to Kafka after multiple retries"
-        );
-        return;
+        console.error("❌ Consumer failed to connect to Kafka after retries");
+        throw new Error("Failed to connect Kafka consumer");
       }
     }
   }
+};
+
+const disconnectConsumer = async () => {
+  try {
+    await consumer.disconnect();
+    console.log("✅ Kafka consumer disconnected");
+  } catch (err) {
+    console.error("Error disconnecting consumer:", err.message);
+  }
+};
+
+// ============================================
+// RUN CONSUMER
+// ============================================
+const runConsumer = async () => {
+  await connectConsumer();
 
   // ======================
   // SUBSCRIPTIONS
@@ -269,4 +316,4 @@ const runConsumer = async () => {
   });
 };
 
-module.exports = { runConsumer };
+module.exports = { kafka, consumer, connectConsumer, disconnectConsumer, runConsumer };
