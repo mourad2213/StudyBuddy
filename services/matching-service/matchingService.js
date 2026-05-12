@@ -1,5 +1,6 @@
-import { MATCHING_WEIGHTS } from './kafka.js';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
+import { MATCHING_WEIGHTS } from "./kafka.js";
+
 const prisma = new PrismaClient();
 
 export const WEIGHTS = MATCHING_WEIGHTS;
@@ -18,41 +19,39 @@ export async function calculateCompatibility(userId, candidateData) {
   let score = 0;
   const reasons = [];
 
-  const sharedCourses = candidateData.courses?.filter((c) =>
-    cachedUser.courses.includes(c)
-  ) || [];
-  const courseScore = Math.min(100, (sharedCourses.length * 40));
+  const sharedCourses =
+    candidateData.courses?.filter((c) => cachedUser.courses.includes(c)) || [];
+  const courseScore = Math.min(100, sharedCourses.length * 40);
   score += (courseScore / 100) * WEIGHTS.SHARED_COURSES;
   if (sharedCourses.length > 0) {
     reasons.push({
-      type: 'SHARED_COURSES',
-      description: `Both enrolled in: ${sharedCourses.join(', ')}`,
+      type: "SHARED_COURSES",
+      description: `Both enrolled in: ${sharedCourses.join(", ")}`,
       weight: WEIGHTS.SHARED_COURSES,
     });
   }
 
-  const sharedTopics = candidateData.topics?.filter((t) =>
-    cachedUser.topics.includes(t)
-  ) || [];
-  const topicScore = Math.min(100, (sharedTopics.length * 50));
+  const sharedTopics =
+    candidateData.topics?.filter((t) => cachedUser.topics.includes(t)) || [];
+  const topicScore = Math.min(100, sharedTopics.length * 50);
   score += (topicScore / 100) * WEIGHTS.SHARED_TOPICS;
   if (sharedTopics.length > 0) {
     reasons.push({
-      type: 'SHARED_TOPICS',
-      description: `Similar study topics: ${sharedTopics.join(', ')}`,
+      type: "SHARED_TOPICS",
+      description: `Similar study topics: ${sharedTopics.join(", ")}`,
       weight: WEIGHTS.SHARED_TOPICS,
     });
   }
 
   const overlapHours = calculateAvailabilityOverlap(
     cachedUser.availability,
-    candidateData.availability
+    candidateData.availability,
   );
   const availabilityScore = Math.min(100, overlapHours * 20);
   score += (availabilityScore / 100) * WEIGHTS.OVERLAPPING_AVAILABILITY;
   if (overlapHours > 0) {
     reasons.push({
-      type: 'AVAILABILITY',
+      type: "AVAILABILITY",
       description: `${overlapHours} hours of overlapping availability`,
       weight: WEIGHTS.OVERLAPPING_AVAILABILITY,
     });
@@ -62,8 +61,8 @@ export async function calculateCompatibility(userId, candidateData) {
   if (preferencesMatch) {
     score += WEIGHTS.PREFERENCES_MATCH;
     reasons.push({
-      type: 'PREFERENCES',
-      description: 'Compatible study preferences',
+      type: "PREFERENCES",
+      description: "Compatible study preferences",
       weight: WEIGHTS.PREFERENCES_MATCH,
     });
   }
@@ -72,7 +71,7 @@ export async function calculateCompatibility(userId, candidateData) {
   if (styleMatch) {
     score += WEIGHTS.STUDY_STYLE;
     reasons.push({
-      type: 'STUDY_STYLE',
+      type: "STUDY_STYLE",
       description: `Same study style: ${cachedUser.studyStyle}`,
       weight: WEIGHTS.STUDY_STYLE,
     });
@@ -115,7 +114,7 @@ function calculateAvailabilityOverlap(avail1, avail2) {
 }
 
 function timeToMinutes(time) {
-  const [hours, minutes] = time.split(':').map(Number);
+  const [hours, minutes] = time.split(":").map(Number);
   return hours * 60 + minutes;
 }
 
@@ -151,8 +150,12 @@ export async function getRecommendations(userId, limit = 10) {
       ])),
     } : { OR: [{ userId }, { candidateId: userId }] },
     orderBy: [{ score: 'desc' }, { createdAt: 'desc' }],
+    // where: { userId },
+    // orderBy: { score: "desc" },
     take: limit,
   });
+
+  
 
   const userNames = await getUserNames([
     ...recommendations.map((rec) => rec.userId),
@@ -213,6 +216,45 @@ export async function acceptMatch(userId, candidateId) {
   return prisma.matchRecommendation.update({
     where: { userId_candidateId: { userId, candidateId } },
     data: { isAccepted: true },
+  });
+}
+
+export async function createBuddyRequest(fromUserId, toUserId) {
+  return prisma.buddyRequest.upsert({
+    where: { fromUserId_toUserId: { fromUserId, toUserId } },
+    update: { status: "PENDING", updatedAt: new Date() },
+    create: { fromUserId, toUserId, status: "PENDING" },
+  });
+}
+
+export async function updateBuddyRequestStatus(fromUserId, toUserId, status) {
+  return prisma.buddyRequest.update({
+    where: { fromUserId_toUserId: { fromUserId, toUserId } },
+    data: { status },
+  });
+}
+
+export async function getIncomingBuddyRequests(userId) {
+  return prisma.buddyRequest.findMany({
+    where: { toUserId: userId },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+export async function getOutgoingBuddyRequests(userId) {
+  return prisma.buddyRequest.findMany({
+    where: { fromUserId: userId },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+export async function getConnections(userId) {
+  return prisma.buddyRequest.findMany({
+    where: {
+      status: "ACCEPTED",
+      OR: [{ fromUserId: userId }, { toUserId: userId }],
+    },
+    orderBy: { createdAt: "desc" },
   });
 }
 

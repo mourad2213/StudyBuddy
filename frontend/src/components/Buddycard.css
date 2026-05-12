@@ -1,0 +1,83 @@
+/* BuddyCard.css */
+.buddy-card {
+  background: #fff;
+  border: 1.5px solid #d8e2ee;
+  border-radius: 18px;
+  padding: 20px 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.buddy-card:hover {
+  box-shadow: 0 8px 28px rgba(50, 64, 85, 0.12);
+  transform: translateY(-2px);
+}
+
+.buddy-card-avatar-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.buddy-card-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #d8e2ee;
+  flex-shrink: 0;
+}
+
+.buddy-card-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--navy);
+  line-height: 1.2;
+}
+
+.buddy-card-info {
+  display: grid;
+  gap: 5px;
+}
+
+.buddy-card-info p {
+  margin: 0;
+  font-size: 0.88rem;
+  color: #3d4f62;
+  line-height: 1.5;
+}
+
+.buddy-card-label {
+  font-weight: 700;
+  color: var(--navy);
+}
+
+.buddy-card-courses {
+  color: #4f657b;
+}
+
+.buddy-card-connect-btn {
+  margin-top: 4px;
+  background: var(--navy);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 10px 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.buddy-card-connect-btn:hover {
+  background: #263447;
+  transform: translateY(-1px);
+}
+
+.buddy-card-connect-btn:active {
+  transform: translateY(0);
+}

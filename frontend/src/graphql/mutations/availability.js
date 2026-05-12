@@ -27,11 +27,15 @@ export const CREATE_AVAILABILITY = gql`
 export const UPDATE_AVAILABILITY = gql`
   mutation UpdateAvailability(
     $id: String!
-    $startTime: String
-    $endTime: String
+    $userId: String!
+    $dayOfWeek: Int!
+    $startTime: String!
+    $endTime: String!
   ) {
     updateAvailability(
       id: $id
+      userId: $userId
+      dayOfWeek: $dayOfWeek
       startTime: $startTime
       endTime: $endTime
     ) {
@@ -47,7 +51,7 @@ export const UPDATE_AVAILABILITY = gql`
 `;
 
 export const DELETE_AVAILABILITY = gql`
-  mutation DeleteAvailability($id: String!) {
-    deleteAvailability(id: $id)
+  mutation DeleteAvailability($id: String!, $userId: String!) {
+    deleteAvailability(id: $id, userId: $userId)
   }
 `;

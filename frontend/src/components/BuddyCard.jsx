@@ -1,4 +1,5 @@
 import React from "react";
+import "./BuddyCard.css";
 
 const BuddyCard = ({
   name,
@@ -8,28 +9,51 @@ const BuddyCard = ({
   courses,
   avatarSrc,
   avatarAlt,
+  onConnect,
 }) => {
+  const displayCourses = Array.isArray(courses)
+    ? courses.filter(Boolean).join(", ")
+    : courses;
+  const safeAvatar = avatarSrc || "/avatar-fadi.svg";
+  const safeAlt = avatarAlt || "Student avatar";
+
   return (
-    <div className="thq-buddy-card-fadi-elm">
-      <div className="thq-pfp-elm1">
-        <img src={avatarSrc} alt={avatarAlt} className="thq-ellipse2-elm" />
+    <div className="buddy-card">
+      <div className="buddy-card-avatar-row">
+        <img src={safeAvatar} alt={safeAlt} className="buddy-card-avatar" />
+        <span className="buddy-card-name">{name || "User"}</span>
       </div>
-      <span className="thq-text-elm21">{name}</span>
-      <div className="thq-description-elm1">
-        <span className="thq-text-elm22">
-          <span className="thq-text-elm23">Major:</span>
-          <span>{major}</span>
-        </span>
-        <span className="thq-text-elm25">Year: {year}</span>
-        <span className="thq-text-elm26">
-          <span className="thq-text-elm27">Study Style:</span>
-          <span>{studyStyle}</span>
-        </span>
-        <span className="thq-text-elm29">
-          <span className="thq-text-elm30">Courses:</span>
-          <span>{courses}</span>
-        </span>
+
+      <div className="buddy-card-info">
+        <p>
+          <span className="buddy-card-label">Major:</span>{" "}
+          {major || "Not set"}
+        </p>
+        <p>
+          <span className="buddy-card-label">Year:</span>{" "}
+          {year || "Not set"}
+        </p>
+        <p>
+          <span className="buddy-card-label">Study Style:</span>{" "}
+          {studyStyle || "Not set"}
+        </p>
+        <p>
+          <span className="buddy-card-label">Courses:</span>{" "}
+          <span className="buddy-card-courses">
+            {displayCourses || "No courses listed"}
+          </span>
+        </p>
       </div>
+
+      <button
+        className="buddy-card-connect-btn"
+        onClick={(e) => {
+          e.preventDefault();
+          onConnect && onConnect();
+        }}
+      >
+        Connect
+      </button>
     </div>
   );
 };

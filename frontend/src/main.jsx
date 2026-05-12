@@ -9,13 +9,16 @@ import "./index.css";
 
 // Service URLs
 const userServiceUrl = "http://localhost:4001/graphql";
+
 const sessionServiceUrl = "http://localhost:4007/graphql";
+const profileServiceUrl = "http://localhost:4006/graphql";
 const notificationServiceUrl = "http://localhost:4005/graphql";
 
 // Create links for different services
 const userServiceLink = createHttpLink({ uri: userServiceUrl });
 const sessionServiceLink = createHttpLink({ uri: sessionServiceUrl });
 const notificationServiceLink = createHttpLink({ uri: notificationServiceUrl });
+const profileServiceLink = createHttpLink({ uri: profileServiceUrl });
 
 // Router link - direct operations to the correct service
 import { ApolloLink } from "@apollo/client";
@@ -58,6 +61,10 @@ const routerLink = new ApolloLink((operation, forward) => {
     operation.setContext({ uri: notificationServiceUrl });
     return notificationServiceLink.request(operation, forward);
   }
+  
+    operation.setContext({ uri: profileServiceUrl });
+    return profileServiceLink.request(operation, forward);
+  
 
   // Default to user service
   operation.setContext({ uri: userServiceUrl });
@@ -65,7 +72,7 @@ const routerLink = new ApolloLink((operation, forward) => {
 });
 
 const client = new ApolloClient({
-  link: routerLink,
+  link: createHttpLink({ uri: sessionServiceUrl }),
   cache: new InMemoryCache(),
 });
 

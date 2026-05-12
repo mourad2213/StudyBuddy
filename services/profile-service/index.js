@@ -133,9 +133,10 @@ const resolvers = {
         },
 
         updateProfile: async (_, { userId, ...data }) => {
-            const updated = await prisma.profile.update({
+            const updated = await prisma.profile.upsert({
                 where: { userId },
-                data
+                update: data,
+                create: { userId, ...data }
             });
 
             await sendEvent("ProfileUpdated", { userId, ...data });
