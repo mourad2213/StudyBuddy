@@ -1,94 +1,44 @@
 /* ── StudyPreferences.css ── */
 
-.sp-wrapper {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  font-family: 'Georgia', serif;
-  background: #f0ebe3;
-}
-
-/* Navbar */
-.sp-navbar {
+.sp-steps {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  background: #1b2a3b;
-  padding: 0 2rem;
-  height: 60px;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.sp-logo-icon {
-  font-size: 1.4rem;
-}
-
-.sp-nav-links {
-  display: flex;
-  gap: 2rem;
-}
-
-.sp-nav-links a {
-  color: #d4c9b8;
-  text-decoration: none;
-  font-size: 0.95rem;
-  transition: color 0.2s;
-}
-
-.sp-nav-links a:hover {
-  color: #fff;
-}
-
-.sp-nav-auth {
-  display: flex;
+  justify-content: center;
   gap: 0.75rem;
-}
-
-.sp-btn-outline {
-  background: transparent;
-  border: 1.5px solid #d4c9b8;
-  color: #d4c9b8;
-  padding: 0.35rem 1rem;
-  border-radius: 6px;
-  cursor: pointer;
+  padding: 1.2rem 0 0.5rem;
+  font-family: "Georgia", serif;
   font-size: 0.9rem;
-  transition: all 0.2s;
+  background: #f0ebe3;
+  width: 100%;
 }
 
-.sp-btn-outline:hover {
-  background: rgba(255,255,255,0.08);
+.sp-step {
+  color: #aaa;
 }
-
-.sp-btn-filled {
-  background: #d4c9b8;
-  border: none;
+.sp-step-active {
   color: #1b2a3b;
-  padding: 0.35rem 1rem;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.9rem;
   font-weight: 600;
-  transition: background 0.2s;
+}
+.sp-step-divider {
+  color: #bbb;
 }
 
-.sp-btn-filled:hover {
-  background: #c4b8a5;
-}
-
-/* Body */
 .sp-body {
   display: flex;
+  flex-wrap: wrap;
   flex: 1;
-  min-height: calc(100vh - 60px);
+  min-height: calc(100vh - 160px);
+  align-items: stretch;
+  font-family: "Georgia", serif;
+  background: #f0ebe3;
 }
 
 .sp-image-panel {
   width: 45%;
   overflow: hidden;
+  min-height: 100%;
+  display: flex;
 }
-
 .sp-bg-image {
   width: 100%;
   height: 100%;
@@ -102,7 +52,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 3rem 2rem;
+  padding: 2rem;
   background: #f0ebe3;
 }
 
@@ -128,19 +78,23 @@
   font-size: 0.9rem;
   margin-bottom: 1.5rem;
 }
+.sp-error {
+  color: #c0392b;
+  font-size: 0.85rem;
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
 
 .sp-form {
   display: flex;
   flex-direction: column;
   gap: 1.1rem;
 }
-
 .sp-field {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
 }
-
 .sp-field label {
   font-size: 0.85rem;
   color: #1b2a3b;
@@ -162,12 +116,10 @@
 .sp-field input:focus {
   border-color: #1b2a3b;
 }
-
 .sp-field input::placeholder {
   color: #aaa;
 }
 
-/* Dropdown */
 .sp-dropdown-wrapper {
   position: relative;
 }
@@ -206,7 +158,7 @@
   margin: 0.2rem 0 0;
   padding: 0.3rem 0;
   z-index: 50;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .sp-dropdown-list li {
@@ -223,13 +175,11 @@
 .sp-dropdown-list li:hover {
   background: #f0ebe3;
 }
-
 .sp-dropdown-list li.sp-selected {
   background: #eef2f7;
   color: #1b2a3b;
   font-weight: 500;
 }
-
 .sp-check {
   color: #1b2a3b;
   font-weight: 700;
@@ -237,7 +187,6 @@
   width: 14px;
 }
 
-/* Save button */
 .sp-save-btn {
   margin-top: 0.5rem;
   width: 100%;
@@ -249,11 +198,39 @@
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  letter-spacing: 0.02em;
   transition: background 0.2s;
   font-family: inherit;
 }
 
 .sp-save-btn:hover {
   background: #243447;
+}
+.sp-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.sp-skip-btn {
+  width: 100%;
+  padding: 0.5rem;
+  background: transparent;
+  color: #888;
+  border: none;
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-family: inherit;
+  text-decoration: underline;
+}
+
+.sp-skip-btn:hover {
+  color: #555;
+}
+
+@media (max-width: 768px) {
+  .sp-image-panel {
+    display: none;
+  }
+  .sp-form-panel {
+    width: 100%;
+  }
 }

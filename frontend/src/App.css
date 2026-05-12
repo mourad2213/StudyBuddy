@@ -9,9 +9,8 @@
 
 .app-main {
   flex: 1;
-  padding: 2rem;
+  padding: 0;
   width: 100%;
-
 }
 
 .counter {
@@ -229,7 +228,6 @@ body,
   font-style: italic;
   line-height: 1.1;
   font-family: "Playfair Display", Georgia, serif;
-
 }
 
 .availability-title-section p {
@@ -238,7 +236,6 @@ body,
   font-style: italic;
   color: #000;
   font-family: "Playfair Display", Georgia, serif;
-
 }
 
 .add-availability-main-btn {
@@ -273,7 +270,7 @@ body,
   align-items: center;
 
   width: max-content;
-  margin: 0 auto;   /* this centers the table */
+  margin: 0 auto; /* this centers the table */
 }
 
 .availability-row-fragment {
@@ -303,7 +300,6 @@ body,
   justify-content: center;
   font-size: 24px;
   font-family: "Playfair Display", Georgia, serif;
-
 }
 
 .empty-time-cell {
@@ -353,7 +349,6 @@ body,
   padding: 0;
 }
 
-
 .availability-modal h2 {
   position: relative;
   z-index: 1;
@@ -384,7 +379,6 @@ body,
 .modal-line label {
   min-width: 205px;
 }
-
 
 .modal-line select,
 .modal-line input {
@@ -468,7 +462,6 @@ body,
   color: #2e3d53;
   line-height: 1.05;
   font-family: "Playfair Display", Georgia, serif;
-
 }
 
 .notifications-heading h2 {
@@ -477,7 +470,6 @@ body,
   font-weight: 400;
   color: #2e3d53;
   font-family: "Playfair Display", Georgia, serif;
-
 }
 
 .notifications-arrow {
@@ -517,7 +509,7 @@ body,
   border-radius: 6px;
   padding: 6px 14px;
   cursor: pointer;
-  font-family:  "Playfair Display",Georgia, serif;
+  font-family: "Playfair Display", Georgia, serif;
 }
 
 .notifications-panel {

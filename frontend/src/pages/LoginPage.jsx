@@ -17,16 +17,26 @@ function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const res = await loginUser({
-      variables: form,
-    });
+    const res = await loginUser({ variables: form });
 
-    console.log("Logged in user:", res.data.login.user);
-    localStorage.setItem("token", res.data.login.token);
-    localStorage.setItem("userId", res.data.login.user.id);
-    //alert("Logged In!");
-    
-    navigate("/profile");
+    const { token, user } = res.data.login;
+
+    localStorage.setItem("token", token);
+    localStorage.setItem("userId", user.id);
+    localStorage.setItem("userName", user.name);
+    localStorage.setItem("userEmail", user.email);
+    localStorage.setItem(
+      "user",
+      JSON.stringify({ id: user.id, name: user.name, email: user.email }),
+    );
+
+    // If onboarding not done, send to profile setup. Otherwise go home.
+    const onboardingDone = localStorage.getItem("onboardingDone");
+    if (!onboardingDone) {
+      navigate("/profile-setup");
+    } else {
+      navigate("/dashboard");
+    }
   };
 
   return (

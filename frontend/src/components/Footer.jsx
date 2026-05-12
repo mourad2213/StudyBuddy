@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import "./Footer.css";
 
 export default function Footer() {
@@ -5,6 +6,9 @@ export default function Footer() {
     <footer className="footer">
       <div className="footer-content">
         <div className="footer-left">
+          <Link to="/dashboard" className="footer-home-link">
+            Home
+          </Link>
           <p className="footer-copyright">© 2025 All Rights Reserved.</p>
         </div>
 

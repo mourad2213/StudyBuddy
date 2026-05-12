@@ -1,6 +1,6 @@
 .footer {
   background: linear-gradient(180deg, #8ca7bf 0%, #6f89a1 100%);
-  margin-top: 4rem;
+  margin-top: 0;
   position: relative;
   color: #f5f7fb;
   padding-top: 60px;
@@ -40,6 +40,17 @@
   align-items: center;
   justify-content: flex-start;
   flex: 1;
+  gap: 1rem;
+}
+
+.footer-home-link {
+  color: #f5f7fb;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.footer-home-link:hover {
+  text-decoration: underline;
 }
 
 .footer-center {

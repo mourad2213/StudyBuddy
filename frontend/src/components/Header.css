@@ -418,6 +418,24 @@
   transform: scale(1.1);
 }
 
+.logout-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #ffffff;
+  transition: transform 0.3s ease;
+  padding: 0.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+}
+
+.logout-btn:hover {
+  transform: scale(1.1);
+}
+
 .svg-icon {
   width: 24px;
   height: 24px;

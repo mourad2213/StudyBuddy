@@ -18,20 +18,26 @@ function SignupPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     if (confirmPassword && confirmPassword !== form.password) {
       alert("Passwords do not match.");
       return;
     }
-
-    const res = await registerUser({
-      variables: form,
-    });
-
-    localStorage.setItem("token", res.data.register.token);
-
-    //alert("Registered!");
-    navigate("/login");
+  
+    const res = await registerUser({ variables: form });
+  
+    const { token, user } = res.data.register;
+  
+    // Save everything needed by your pages
+    localStorage.setItem("token", token);
+    localStorage.setItem("userId", user.id);
+    localStorage.setItem("userName", user.name);
+    localStorage.setItem("userEmail", user.email);
+    // Also save as "user" object for the Header component
+    localStorage.setItem("user", JSON.stringify({ id: user.id, name: user.name, email: user.email }));
+  
+    // Go to onboarding instead of login
+    navigate("/profile-setup");
   };
 
   return (

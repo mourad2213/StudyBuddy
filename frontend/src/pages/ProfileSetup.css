@@ -1,93 +1,49 @@
 /* ── ProfileSetup.css ── */
 
-.ps-wrapper {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  font-family: 'Georgia', serif;
-  background: #f0ebe3;
-}
-
-/* Navbar */
-.ps-navbar {
+.ps-steps {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  background: #1b2a3b;
-  padding: 0 2rem;
-  height: 60px;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.ps-logo-icon {
-  font-size: 1.4rem;
-}
-
-.ps-nav-links {
-  display: flex;
-  gap: 2rem;
-}
-
-.ps-nav-links a {
-  color: #d4c9b8;
-  text-decoration: none;
-  font-size: 0.95rem;
-  transition: color 0.2s;
-}
-
-.ps-nav-links a:hover {
-  color: #fff;
-}
-
-.ps-nav-auth {
-  display: flex;
+  justify-content: center;
   gap: 0.75rem;
+  padding: 0.8rem 0;
+  font-family: "Georgia", serif;
+  font-size: 0.95rem;
+  background: #f0ebe3;
+  width: 100%;
+  border-bottom: 1px solid #e0d9d0;
+  margin-top: -1rem;
 }
 
-.ps-btn-outline {
-  background: transparent;
-  border: 1.5px solid #d4c9b8;
-  color: #d4c9b8;
-  padding: 0.35rem 1rem;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.9rem;
-  transition: all 0.2s;
+.ps-step {
+  color: #b0a898;
+  font-weight: 400;
 }
-
-.ps-btn-outline:hover {
-  background: rgba(255,255,255,0.08);
-}
-
-.ps-btn-filled {
-  background: #d4c9b8;
-  border: none;
+.ps-step-active {
   color: #1b2a3b;
-  padding: 0.35rem 1rem;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.9rem;
-  font-weight: 600;
-  transition: background 0.2s;
+  font-weight: 700;
+}
+.ps-step-divider {
+  color: #b0a898;
+  font-size: 0.85rem;
 }
 
-.ps-btn-filled:hover {
-  background: #c4b8a5;
-}
-
-/* Body split layout */
 .ps-body {
   display: flex;
+  flex-wrap: wrap;
   flex: 1;
-  min-height: calc(100vh - 60px);
+  min-height: calc(100vh - 160px);
+  align-items: stretch;
+  font-family: "Georgia", serif;
+  background: #f0ebe3;
+  margin: 0;
+  padding: 0;
 }
 
-/* Left image */
 .ps-image-panel {
   width: 45%;
   overflow: hidden;
+  min-height: 100%;
+  display: flex;
 }
 
 .ps-bg-image {
@@ -97,14 +53,13 @@
   filter: brightness(0.85);
 }
 
-/* Right form */
 .ps-form-panel {
   width: 55%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 3rem 2rem;
+  padding: 2rem;
   background: #f0ebe3;
 }
 
@@ -113,10 +68,8 @@
   color: #1b2a3b;
   margin-bottom: 1.5rem;
   font-weight: 500;
-  letter-spacing: 0.01em;
 }
 
-/* Card */
 .ps-card {
   background: #fff;
   border: 1.5px solid #d6cfc5;
@@ -133,19 +86,23 @@
   margin-bottom: 1.5rem;
 }
 
-/* Form fields */
+.ps-error {
+  color: #c0392b;
+  font-size: 0.85rem;
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+
 .ps-form {
   display: flex;
   flex-direction: column;
   gap: 1.1rem;
 }
-
 .ps-field {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
 }
-
 .ps-field label {
   font-size: 0.85rem;
   color: #1b2a3b;
@@ -167,12 +124,10 @@
 .ps-field input:focus {
   border-color: #1b2a3b;
 }
-
 .ps-field input::placeholder {
   color: #aaa;
 }
 
-/* Dropdown */
 .ps-dropdown-wrapper {
   position: relative;
 }
@@ -184,17 +139,12 @@
   border-radius: 6px;
   background: #faf9f7;
   font-size: 0.9rem;
-  color: #aaa;
   display: flex;
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
   font-family: inherit;
   text-align: left;
-}
-
-.ps-dropdown-btn span:first-child {
-  color: #555;
 }
 
 .ps-arrow {
@@ -214,7 +164,7 @@
   margin: 0.2rem 0 0;
   padding: 0.3rem 0;
   z-index: 50;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .ps-dropdown-list li {
@@ -229,7 +179,6 @@
   background: #f0ebe3;
 }
 
-/* Save button */
 .ps-save-btn {
   margin-top: 0.5rem;
   width: 100%;
@@ -241,11 +190,39 @@
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  letter-spacing: 0.02em;
   transition: background 0.2s;
   font-family: inherit;
 }
 
 .ps-save-btn:hover {
   background: #243447;
+}
+.ps-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ps-skip-btn {
+  width: 100%;
+  padding: 0.5rem;
+  background: transparent;
+  color: #888;
+  border: none;
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-family: inherit;
+  text-decoration: underline;
+}
+
+.ps-skip-btn:hover {
+  color: #555;
+}
+
+@media (max-width: 768px) {
+  .ps-image-panel {
+    display: none;
+  }
+  .ps-form-panel {
+    width: 100%;
+  }
 }
