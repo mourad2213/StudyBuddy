@@ -3,10 +3,36 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const kafka = new Kafka({
-  clientId: 'matching-service',
-  brokers: process.env.KAFKA_BROKERS?.split(',') || ['kafka:29092'],
-});
+const getBrokerConfig = () => {
+  const brokers = process.env.KAFKA_BROKERS?.split(',');
+
+  if (!brokers || brokers.length === 0) {
+    throw new Error("KAFKA_BROKERS environment variable is not set");
+  }
+
+  const baseConfig = {
+    clientId: 'matching-service',
+    brokers,
+  };
+
+  if (process.env.KAFKA_USERNAME && process.env.KAFKA_PASSWORD) {
+    return {
+      ...baseConfig,
+      ssl: {
+        rejectUnauthorized: true,
+      },
+      sasl: {
+        mechanism: 'plain',
+        username: process.env.KAFKA_USERNAME,
+        password: process.env.KAFKA_PASSWORD,
+      },
+    };
+  }
+
+  return baseConfig;
+};
+
+const kafka = new Kafka(getBrokerConfig());
 
 // Declare BOTH before use — order matters
 const consumer = kafka.consumer({ groupId: 'matching-service-group' });
