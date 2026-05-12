@@ -41,7 +41,9 @@ const kafka = new Kafka({
   brokers,
 
   // ✅ ALWAYS use SSL for Aiven
-  ssl: true,
+  ssl: {
+    rejectUnauthorized: false,
+  },
 
   // ✅ ALWAYS use SASL plain for Aiven
   sasl: {
