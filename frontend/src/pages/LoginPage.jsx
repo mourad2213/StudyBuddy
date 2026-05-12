@@ -24,7 +24,7 @@ function LoginPage() {
     console.log("Logged in user:", res.data.login.user);
     localStorage.setItem("token", res.data.login.token);
     localStorage.setItem("username", res.data.login.user.name);
-    localStorage.setItem("userid", res.data.login.user.id);
+    localStorage.setItem("userId", res.data.login.user.id);
     //alert("Logged In!");
     
     navigate("/profile");

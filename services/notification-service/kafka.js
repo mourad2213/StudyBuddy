@@ -82,13 +82,21 @@ const runConsumer = async () => {
           break;
 
         case "SESSION_INVITATION_RECEIVED":
-          await prisma.notification.create({
-            data: {
-              userId: event.payload.userId,
-              message: "You received a session invitation.",
-              type: "SESSION_INVITATION_RECEIVED",
-            },
-          });
+          console.debug("kafka: SESSION_INVITATION_RECEIVED payload", event.payload);
+          try {
+            const created = await prisma.notification.create({
+              data: {
+                userId: event.payload.userId,
+                message: event.payload.sessionId 
+                  ? `[SESSION_ID:${event.payload.sessionId}] You received a session invitation.`
+                  : "You received a session invitation.",
+                type: "SESSION_INVITATION_RECEIVED",
+              },
+            });
+            console.debug("kafka: created notification", { id: created.id, userId: created.userId, type: created.type });
+          } catch (err) {
+            console.error("kafka: failed creating SESSION_INVITATION_RECEIVED notification", { err, payload: event.payload });
+          }
           break;
 
         case "RecommendationsGenerated":
@@ -163,25 +171,32 @@ const runConsumer = async () => {
 
         case "StudySessionCreated":
           // Notify all invited members about the session invitation
+          console.debug("kafka: StudySessionCreated payload", event.payload);
           if (event.payload.possibleMemberIds && Array.isArray(event.payload.possibleMemberIds)) {
-            const invitationPromises = event.payload.possibleMemberIds
-              .filter((memberId) => memberId !== event.payload.creatorId) // Don't notify the creator
-              .map((memberId) =>
-                prisma.notification.create({
-                  data: {
-                    userId: memberId,
-                    message: `You've been invited to join a study session: "${event.payload.topic}"`,
-                    type: "SESSION_INVITATION_RECEIVED",
-                  },
-                })
-              );
-            
+            const targets = event.payload.possibleMemberIds.filter((memberId) => memberId !== event.payload.creatorId);
             try {
-              await Promise.all(invitationPromises);
-              console.log(`✅ Created ${invitationPromises.length} session invitation notifications`);
+              const created = [];
+              for (const memberId of targets) {
+                try {
+                  const note = await prisma.notification.create({
+                    data: {
+                      userId: memberId,
+                      message: `[SESSION_ID:${event.payload.sessionId}] You've been invited to join a study session: "${event.payload.topic}"`,
+                      type: "SESSION_INVITATION_RECEIVED",
+                    },
+                  });
+                  created.push(note);
+                  console.debug("kafka: created invitation notification", { id: note.id, userId: note.userId });
+                } catch (innerErr) {
+                  console.error("kafka: failed to create invitation notification for member", { memberId, innerErr, payload: event.payload });
+                }
+              }
+              console.log(`✅ Created ${created.length} session invitation notifications (attempted ${targets.length})`);
             } catch (err) {
-              console.error("Error creating session invitation notifications:", err);
+              console.error("kafka: Error creating session invitation notifications:", err, event.payload);
             }
+          } else {
+            console.warn("kafka: StudySessionCreated has no possibleMemberIds", event.payload);
           }
           break;
 

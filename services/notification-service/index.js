@@ -28,6 +28,7 @@ const typeDefs = gql`
     markAsRead(notificationId: ID!): Notification
     markAllAsRead(userId: String!): Boolean
     deleteNotification(notificationId: ID!): Boolean  
+    updateNotificationMessage(notificationId: ID!, message: String!): Notification
 
   }
 `;
@@ -76,6 +77,13 @@ const resolvers = {
     deleteNotification: async (_, { notificationId }) => {
     await prisma.notification.delete({ where: { id: notificationId } });
     return true;
+    },
+
+    updateNotificationMessage: async (_, { notificationId, message }) => {
+      return prisma.notification.update({
+        where: { id: notificationId },
+        data: { message, isRead: true },
+      });
     },
   },
 };
