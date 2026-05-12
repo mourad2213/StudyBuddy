@@ -2,8 +2,32 @@ const { Kafka, logLevel } = require("kafkajs");
 
 const kafka = new Kafka({
   clientId: "session-service",
-  brokers: (process.env.KAFKA_BROKERS || "kafka:9092").split(","),
+
+  // ✅ Aiven / cloud / k8s multi-broker support
+  brokers: process.env.KAFKA_BROKERS
+    ? process.env.KAFKA_BROKERS.split(",").map((b) => b.trim())
+    : ["localhost:9092"],
+
   logLevel: logLevel.INFO,
+
+  // ✅ Aiven SSL
+  ssl:
+    process.env.KAFKA_USERNAME && process.env.KAFKA_PASSWORD
+      ? {
+          rejectUnauthorized: false,
+        }
+      : false,
+
+  // ✅ Aiven SASL
+  sasl:
+    process.env.KAFKA_USERNAME && process.env.KAFKA_PASSWORD
+      ? {
+          mechanism: "plain",
+          username: process.env.KAFKA_USERNAME,
+          password: process.env.KAFKA_PASSWORD,
+        }
+      : undefined,
+
   retry: {
     initialRetryTime: 300,
     retries: 8,
@@ -17,55 +41,53 @@ const producer = kafka.producer({
   transactionTimeout: 30000,
 });
 
-const consumer = kafka.consumer({ groupId: "session-service-group" });
+const consumer = kafka.consumer({
+  groupId: "session-service-group",
+});
 
 let isProducerConnected = false;
 let isConsumerConnected = false;
 
-// Producer functions
+// ======================
+// PRODUCER
+// ======================
 const connectProducer = async () => {
-  if (!isProducerConnected) {
-    try {
-      // Set a timeout for Kafka connection - don't block server startup
-      const connectPromise = producer.connect();
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Kafka connection timeout")), 5000)
-      );
+  if (isProducerConnected) return;
 
-      await Promise.race([connectPromise, timeoutPromise]);
-      isProducerConnected = true;
-      console.log("✅ Kafka producer connected");
-    } catch (error) {
-      // Log error but don't throw - allow server to start without Kafka
-      console.warn(
-        "⚠️  Kafka producer not available (this is OK for local testing):",
-        error.message
-      );
-      // Don't throw - just continue without Kafka
-      isProducerConnected = false;
-    }
+  try {
+    const connectPromise = producer.connect();
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Kafka connection timeout")), 5000)
+    );
+
+    await Promise.race([connectPromise, timeoutPromise]);
+
+    isProducerConnected = true;
+    console.log("✅ Kafka producer connected");
+  } catch (error) {
+    console.warn(
+      "⚠️ Kafka producer not available:",
+      error.message
+    );
+    isProducerConnected = false;
   }
 };
 
 const disconnectProducer = async () => {
-  if (isProducerConnected) {
-    try {
-      await producer.disconnect();
-      isProducerConnected = false;
-      console.log("✅ Kafka producer disconnected");
-    } catch (error) {
-      console.error("❌ Failed to disconnect Kafka producer:", error);
-    }
+  if (!isProducerConnected) return;
+
+  try {
+    await producer.disconnect();
+    isProducerConnected = false;
+    console.log("✅ Kafka producer disconnected");
+  } catch (error) {
+    console.error("❌ Failed to disconnect producer:", error.message);
   }
 };
 
 const publishEvent = async (topic, eventName, data) => {
-  // If Kafka isn't connected, just log and return - don't crash
   if (!isProducerConnected) {
-    console.log(
-      `📝 Event logged (Kafka not available): ${eventName}`,
-      data
-    );
+    console.log(`📝 Kafka OFFLINE event: ${eventName}`, data);
     return { eventName, timestamp: new Date().toISOString() };
   }
 
@@ -74,7 +96,8 @@ const publishEvent = async (topic, eventName, data) => {
       eventName,
       timestamp: new Date().toISOString(),
       producer: "session-service",
-      correlationId: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      correlationId:
+        `${Date.now()}-${Math.random().toString(36).slice(2)}`,
       payload: data,
     };
 
@@ -92,62 +115,71 @@ const publishEvent = async (topic, eventName, data) => {
       ],
     });
 
-    console.log(`✅ Event published: ${eventName} to topic: ${topic}`);
+    console.log(`✅ Published: ${eventName} → ${topic}`);
     return event;
   } catch (error) {
-    // Log error but don't crash - Kafka issues shouldn't crash the server
-    console.warn(`⚠️  Failed to publish event: ${eventName}`, error.message);
-    return { eventName, timestamp: new Date().toISOString(), error: true };
+    console.warn(`⚠️ Publish failed: ${eventName}`, error.message);
+    return { eventName, error: true };
   }
 };
 
-// Consumer functions
+// ======================
+// CONSUMER
+// ======================
 const connectConsumer = async () => {
-  if (!isConsumerConnected) {
-    try {
-      await consumer.connect();
-      isConsumerConnected = true;
-      console.log("✅ Kafka consumer connected");
-    } catch (error) {
-      console.error("❌ Failed to connect Kafka consumer:", error);
-      throw error;
-    }
+  if (isConsumerConnected) return;
+
+  try {
+    await consumer.connect();
+    isConsumerConnected = true;
+    console.log("✅ Kafka consumer connected");
+  } catch (error) {
+    console.error("❌ Consumer connect failed:", error.message);
+    throw error;
   }
 };
 
 const disconnectConsumer = async () => {
-  if (isConsumerConnected) {
-    try {
-      await consumer.disconnect();
-      isConsumerConnected = false;
-      console.log("✅ Kafka consumer disconnected");
-    } catch (error) {
-      console.error("❌ Failed to disconnect Kafka consumer:", error);
-    }
+  if (!isConsumerConnected) return;
+
+  try {
+    await consumer.disconnect();
+    isConsumerConnected = false;
+    console.log("✅ Kafka consumer disconnected");
+  } catch (error) {
+    console.error("❌ Consumer disconnect failed:", error.message);
   }
 };
 
+// FIXED: KafkaJS does NOT support { topics: [] } in subscribe
 const subscribeToEvents = async (topics, messageHandler) => {
   try {
     await connectConsumer();
 
-    await consumer.subscribe({ topics, fromBeginning: false });
+    // ✅ correct KafkaJS usage
+    for (const topic of topics) {
+      await consumer.subscribe({
+        topic,
+        fromBeginning: false,
+      });
+    }
 
     await consumer.run({
-      eachMessage: async ({ topic, partition, message }) => {
+      eachMessage: async ({ topic, message }) => {
         try {
           const event = JSON.parse(message.value.toString());
-          console.log(`📨 Event received from ${topic}:`, event.eventName);
+          console.log(`📨 ${topic}:`, event.eventName);
+
           await messageHandler(event);
         } catch (error) {
-          console.error("❌ Error processing Kafka message:", error);
+          console.error("❌ Message processing error:", error.message);
         }
       },
     });
 
-    console.log(`✅ Subscribed to topics: ${topics.join(", ")}`);
+    console.log(`✅ Subscribed to: ${topics.join(", ")}`);
   } catch (error) {
-    console.error("❌ Failed to subscribe to events:", error);
+    console.error("❌ Subscription failed:", error.message);
     throw error;
   }
 };
