@@ -4,6 +4,7 @@ import popupBg from "../assets/add-availability-bg.png";
 import { GET_AVAILABILITY } from "../graphql/queries/availability";
 import {
   CREATE_AVAILABILITY,
+  UPDATE_AVAILABILITY,
   DELETE_AVAILABILITY,
 } from "../graphql/mutations/availability";
 
@@ -17,11 +18,11 @@ const DAYS = [
   { value: 4, label: "Friday" },
 ];
 const AVAILABILITY_GRAPHQL = "http://localhost:4002/graphql";
-function addOneHour(time) {
-  const [hours, minutes] = time.split(":").map(Number);
-  const newHours = (hours + 1).toString().padStart(2, "0");
-  return `${newHours}:${minutes.toString().padStart(2, "0")}`;
-}
+// function addOneHour(time) {
+//   const [hours, minutes] = time.split(":").map(Number);
+//   const newHours = (hours + 1).toString().padStart(2, "0");
+//   return `${newHours}:${minutes.toString().padStart(2, "0")}`;
+// }
 
 function formatTime(time) {
   const [hourStr, minute] = time.split(":");
@@ -39,8 +40,14 @@ export default function AvailabilityPage() {
 
   const [showModal, setShowModal] = useState(false);
   const [selectedDay, setSelectedDay] = useState(1);
-  const [selectedTime, setSelectedTime] = useState("12:00");
+  const [selectedStartTime, setSelectedStartTime] = useState("12:00");
+  const [selectedEndTime, setSelectedEndTime] = useState("13:00");
   const [message, setMessage] = useState("");
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingSlot, setEditingSlot] = useState(null);
+  const [editDay, setEditDay] = useState(1);
+  const [editStartTime, setEditStartTime] = useState("12:00");
+  const [editEndTime, setEditEndTime] = useState("13:00");
 
   const token = localStorage.getItem("token");
 
@@ -69,6 +76,18 @@ export default function AvailabilityPage() {
       },
     }
   );
+  const [updateAvailability, { loading: updating }] = useMutation(
+    UPDATE_AVAILABILITY,
+    {
+      context: {
+        uri: AVAILABILITY_GRAPHQL,
+        headers: {
+          authorization: token ? `Bearer ${token}` : "",
+          Authorization: token ? `Bearer ${token}` : "",
+        },
+      },
+    }
+  );
   const [deleteAvailability] = useMutation(DELETE_AVAILABILITY, {
     context: {
       uri: AVAILABILITY_GRAPHQL,
@@ -80,23 +99,36 @@ export default function AvailabilityPage() {
   });
   const slots = data?.getAvailability || [];
 
-  const uniqueTimes = [...new Set(slots.map((slot) => slot.startTime))].sort();
+  function formatTimeRange(timeRange) {
+  const [startTime, endTime] = timeRange.split("-");
+  return `${formatTime(startTime)} - ${formatTime(endTime)}`;
+}
 
-  const slotExists = (dayOfWeek, startTime) => {
+  const uniqueTimeRanges = [
+    ...new Set(slots.map((slot) => `${slot.startTime}-${slot.endTime}`)),
+  ].sort();
+  const slotExists = (dayOfWeek, timeRange) => {
+    const [startTime, endTime] = timeRange.split("-");
+
     return slots.some(
       (slot) =>
-        slot.dayOfWeek === Number(dayOfWeek) && slot.startTime === startTime
+        slot.dayOfWeek === Number(dayOfWeek) &&
+        slot.startTime === startTime &&
+        slot.endTime === endTime
     );
   };
 
-  const getSlotId = (dayOfWeek, startTime) => {
-    const found = slots.find(
+  const getSlot = (dayOfWeek, timeRange) => {
+    const [startTime, endTime] = timeRange.split("-");
+
+    return slots.find(
       (slot) =>
-        slot.dayOfWeek === Number(dayOfWeek) && slot.startTime === startTime
+        slot.dayOfWeek === Number(dayOfWeek) &&
+        slot.startTime === startTime &&
+        slot.endTime === endTime
     );
-
-    return found?.id;
   };
+
 
   const handleAdd = async () => {
     setMessage("");
@@ -106,13 +138,27 @@ export default function AvailabilityPage() {
       return;
     }
 
-    if (!selectedTime) {
-      setMessage("Please choose a time.");
+    if (!selectedStartTime || !selectedEndTime) {
+      setMessage("Please choose both start time and end time.");
       return;
     }
 
-    if (slotExists(selectedDay, selectedTime)) {
-      setMessage("This availability already exists.");
+    if (selectedEndTime <= selectedStartTime) {
+      setMessage("End time must be after start time.");
+      return;
+    }
+
+    const overlaps = slots.some((slot) => {
+      if (slot.dayOfWeek !== Number(selectedDay)) return false;
+
+      return (
+        selectedStartTime < slot.endTime &&
+        selectedEndTime > slot.startTime
+      );
+    });
+
+    if (overlaps) {
+      setMessage("This time slot overlaps with existing availability.");
       return;
     }
 
@@ -121,8 +167,8 @@ export default function AvailabilityPage() {
         variables: {
           userId: currentUserId,
           dayOfWeek: Number(selectedDay),
-          startTime: selectedTime,
-          endTime: addOneHour(selectedTime),
+          startTime: selectedStartTime,
+          endTime: selectedEndTime,
         },
       });
 
@@ -133,18 +179,104 @@ export default function AvailabilityPage() {
     }
   };
 
-  const handleDeleteCell = async (dayOfWeek, startTime) => {
-    const id = getSlotId(dayOfWeek, startTime);
-    if (!id) return;
+  const handleDeleteCell = async (slot) => {
+    if (!slot?.id) return;
 
     const confirmed = window.confirm("Delete this availability slot?");
     if (!confirmed) return;
 
-    await deleteAvailability({
-      variables: { id },
+    try {
+      await deleteAvailability({
+        variables: {
+          id: slot.id,
+          userId: currentUserId,
+        },
+      });
+
+      await refetch();
+    } catch (err) {
+      alert(err.message || "Failed to delete availability.");
+    }
+  };
+  const openEditModal = (slot) => {
+    setEditingSlot(slot);
+    setEditDay(slot.dayOfWeek);
+    setEditStartTime(slot.startTime);
+    setEditEndTime(slot.endTime);
+    setMessage("");
+    setShowEditModal(true);
+  };
+
+  const handleUpdateSlot = async () => {
+    if (!editingSlot) return;
+
+    setMessage("");
+
+    if (!editStartTime || !editEndTime) {
+      setMessage("Please choose both start time and end time.");
+      return;
+    }
+
+    if (editEndTime <= editStartTime) {
+      setMessage("End time must be after start time.");
+      return;
+    }
+
+    const overlaps = slots.some((slot) => {
+      if (slot.id === editingSlot.id) return false;
+      if (slot.dayOfWeek !== Number(editDay)) return false;
+
+      return editStartTime < slot.endTime && editEndTime > slot.startTime;
     });
 
-    await refetch();
+    if (overlaps) {
+      setMessage("This updated slot overlaps with another availability.");
+      return;
+    }
+
+    try {
+      await updateAvailability({
+        variables: {
+          id: editingSlot.id,
+          userId: currentUserId,
+          dayOfWeek: Number(editDay),
+          startTime: editStartTime,
+          endTime: editEndTime,
+        },
+      });
+
+      await refetch();
+      setShowEditModal(false);
+      setEditingSlot(null);
+    } catch (err) {
+      setMessage(err.message || "Failed to update availability.");
+    }
+  };
+  const handleResetAvailability = async () => {
+    if (slots.length === 0) return;
+
+    const confirmed = window.confirm(
+      "Are you sure you want to delete all availability slots?"
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await Promise.all(
+        slots.map((slot) =>
+          deleteAvailability({
+            variables: {
+              id: slot.id,
+              userId: currentUserId,
+            },
+          })
+        )
+      );
+
+      await refetch();
+    } catch (err) {
+      alert(err.message || "Failed to reset availability.");
+    }
   };
 
   if (!currentUserId) {
@@ -188,6 +320,13 @@ export default function AvailabilityPage() {
         >
           + Add availability
         </button>
+        <button
+          className="reset-availability-btn"
+          onClick={handleResetAvailability}
+          disabled={slots.length === 0}
+        >
+          Reset availability
+        </button>
       </section>
 
       <section className="schedule-section">
@@ -202,7 +341,7 @@ export default function AvailabilityPage() {
             </div>
           ))}
 
-          {uniqueTimes.length === 0 ? (
+          {uniqueTimeRanges.length === 0 ? (
             <>
               <div className="time-cell empty-time-cell"></div>
               {DAYS.map((day) => (
@@ -210,20 +349,22 @@ export default function AvailabilityPage() {
               ))}
             </>
           ) : (
-            uniqueTimes.map((time) => (
-              <div className="availability-row-fragment" key={time}>
-                <div className="time-cell">{formatTime(time)}</div>
+            uniqueTimeRanges.map((timeRange) => (
+              <div className="availability-row-fragment" key={timeRange}>
+                <div className="time-cell">{formatTimeRange(timeRange)}</div>
 
                 {DAYS.map((day) => {
-                  const active = slotExists(day.value, time);
+                  const active = slotExists(day.value, timeRange);
 
                   return (
                     <div
                       className="day-cell"
-                      key={`${day.value}-${time}`}
-                      onClick={() =>
-                        active && handleDeleteCell(day.value, time)
-                      }
+                      key={`${day.value}-${timeRange}`}
+                      onClick={() => {
+                        if (!active) return;
+                        const slot = getSlot(day.value, timeRange);
+                        openEditModal(slot);
+                      }}
                     >
                       {active && <div className="available-block"></div>}
                     </div>
@@ -256,11 +397,20 @@ export default function AvailabilityPage() {
             </div>
 
             <div className="modal-line">
-              <label>pick time :</label>
+              <label>Start time:</label>
               <input
                 type="time"
-                value={selectedTime}
-                onChange={(e) => setSelectedTime(e.target.value)}
+                value={selectedStartTime}
+                onChange={(e) => setSelectedStartTime(e.target.value)}
+              />
+            </div>
+
+            <div className="modal-line">
+              <label>End time:</label>
+              <input
+                type="time"
+                value={selectedEndTime}
+                onChange={(e) => setSelectedEndTime(e.target.value)}
               />
             </div>
 
@@ -285,6 +435,77 @@ export default function AvailabilityPage() {
           </div>
         </div>
       )}
+      {showEditModal && editingSlot && (
+  <div className="availability-modal-backdrop">
+    <div
+      className="availability-modal"
+      style={{ backgroundImage: `url(${popupBg})` }}
+    >
+      <h2>Edit Availability</h2>
+
+      <div className="modal-line">
+        <label>Choose day:</label>
+        <select
+          value={editDay}
+          onChange={(e) => setEditDay(Number(e.target.value))}
+        >
+          {DAYS.map((day) => (
+            <option key={day.value} value={day.value}>
+              {day.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="modal-line">
+        <label>Start time:</label>
+        <input
+          type="time"
+          value={editStartTime}
+          onChange={(e) => setEditStartTime(e.target.value)}
+        />
+      </div>
+
+      <div className="modal-line">
+        <label>End time:</label>
+        <input
+          type="time"
+          value={editEndTime}
+          onChange={(e) => setEditEndTime(e.target.value)}
+        />
+      </div>
+
+      {message && <p className="availability-error">{message}</p>}
+
+      <div className="modal-actions edit-modal-actions">
+        <button
+          className="cancel-modal-btn"
+          onClick={() => {
+            setShowEditModal(false);
+            setEditingSlot(null);
+          }}
+        >
+          Cancel
+        </button>
+
+        <button
+          className="delete-slot-btn"
+          onClick={() => handleDeleteCell(editingSlot)}
+        >
+          Delete
+        </button>
+
+        <button
+          className="confirm-modal-btn"
+          onClick={handleUpdateSlot}
+          disabled={updating}
+        >
+          {updating ? "Saving..." : "Save"}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </main>
   );
 }
