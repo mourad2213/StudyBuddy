@@ -81,7 +81,7 @@ export default function Header() {
 
           {isLoggedIn && (
             <>
-              <Link to="/" className="nav-link" onClick={closeMenu}>
+              <Link to="/find-buddy" className="nav-link" onClick={closeMenu}>
                 Find Buddy
               </Link>
 

@@ -711,3 +711,291 @@ body,
     font-size: 16px;
   }
 }
+
+/* find buddy page */
+.find-buddy-page {
+  min-height: 100vh;
+  background: #f3efec;
+  padding: 36px 54px 90px;
+  color: #2e3d53;
+  font-family: "Playfair Display", Georgia, serif;
+}
+
+.find-buddy-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.find-buddy-header h1 {
+  margin: 0;
+  font-size: 36px;
+  font-weight: 700;
+  color: #2e3d53;
+}
+
+.find-buddy-header-icon {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+}
+
+.find-buddy-layout {
+  display: grid;
+  grid-template-columns: 1fr 178px;
+  gap: 24px;
+  align-items: start;
+}
+
+.find-buddy-results-panel {
+  background: #dfdfd9;
+  min-height: 520px;
+  padding: 26px 40px;
+  box-sizing: border-box;
+}
+
+.find-buddy-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 146px);
+  gap: 16px 46px;
+  justify-content: center;
+  align-items: start;
+}
+
+/* card style similar to original */
+.thq-buddy-card-fadi-elm.buddy-card-enhanced,
+.buddy-card-enhanced {
+  position: relative;
+  width: 146px;
+  min-height: 205px;
+  background: #f3efec;
+  border: 3px solid #2e3d53;
+  border-radius: 15px;
+  padding: 10px 8px 8px;
+  box-sizing: border-box;
+  color: #2e3d53;
+  display: grid;
+  grid-template-columns: 45px 1fr;
+  grid-template-rows: auto auto 1fr auto;
+  column-gap: 8px;
+  align-items: start;
+}
+
+.thq-pfp-elm1 {
+  width: 45px;
+  height: 45px;
+  grid-column: 1;
+  grid-row: 1;
+  margin: 0;
+}
+
+.thq-ellipse2-elm {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.thq-text-elm21 {
+  grid-column: 2;
+  grid-row: 1;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.1;
+  align-self: center;
+  margin: 0;
+  word-break: break-word;
+}
+
+.thq-description-elm1 {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  width: 100%;
+  font-size: 9.5px;
+  line-height: 1.15;
+  margin-top: 8px;
+}
+
+.thq-text-elm22,
+.thq-text-elm25,
+.thq-text-elm26,
+.thq-text-elm29 {
+  display: block;
+}
+
+.thq-text-elm23,
+.thq-text-elm27,
+.thq-text-elm30 {
+  font-weight: 700;
+  margin-right: 3px;
+}
+
+.buddy-score-pill {
+  display: none;
+}
+
+.buddy-match-reason {
+  display: none;
+}
+
+.buddy-card-actions {
+  grid-column: 1 / -1;
+  grid-row: 4;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.buddy-card-actions button {
+  width: 74px;
+  height: 20px;
+  background: #2e3d53;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 0;
+  font-size: 10px;
+  cursor: pointer;
+  font-family: "Playfair Display", Georgia, serif;
+}
+
+/* filter panel */
+.find-buddy-filter-panel {
+  background: #dfdfd9;
+  min-height: 243px;
+  padding: 18px 12px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.find-buddy-filter-panel h2 {
+  text-align: center;
+  font-size: 16px;
+  font-weight: 400;
+  margin: 0 0 18px;
+  color: #2e3d53;
+}
+
+.find-buddy-search-input,
+.find-buddy-filter-panel select {
+  width: 100%;
+  height: 34px;
+  border: none;
+  border-bottom: 1px solid #c8c7c0;
+  background: transparent;
+  color: #2e3d53;
+  padding: 6px 4px;
+  margin-bottom: 4px;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 12px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.find-buddy-search-input::placeholder {
+  color: rgba(46, 61, 83, 0.65);
+}
+
+.find-buddy-filter-panel p {
+  font-size: 10px;
+  line-height: 1.4;
+  text-align: center;
+  margin-top: 28px;
+  color: #2e3d53;
+}
+
+.find-buddy-message {
+  text-align: center;
+  margin: 0 0 16px;
+  color: #2e3d53;
+}
+
+.find-buddy-empty,
+.find-buddy-loading,
+.find-buddy-error {
+  text-align: center;
+  font-size: 20px;
+  color: #2e3d53;
+}
+
+/* modal */
+.find-buddy-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(46, 61, 83, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.find-buddy-modal {
+  width: 470px;
+  max-width: calc(100% - 32px);
+  background: #f3efec;
+  border: 2px solid #2e3d53;
+  border-radius: 16px;
+  padding: 28px;
+  box-sizing: border-box;
+  position: relative;
+  color: #2e3d53;
+}
+
+.find-buddy-modal h2 {
+  margin-top: 0;
+  font-size: 32px;
+}
+
+.find-buddy-modal h3 {
+  margin-bottom: 8px;
+}
+
+.find-buddy-modal-close {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  border: none;
+  background: transparent;
+  font-size: 28px;
+  color: #2e3d53;
+  cursor: pointer;
+}
+
+.find-buddy-connect-btn {
+  background: #2e3d53;
+  color: white;
+  border: none;
+  border-radius: 7px;
+  padding: 9px 20px;
+  cursor: pointer;
+  font-family: "Playfair Display", Georgia, serif;
+}
+
+@media (max-width: 900px) {
+  .find-buddy-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .find-buddy-filter-panel {
+    order: -1;
+  }
+
+  .find-buddy-grid {
+    grid-template-columns: repeat(2, 146px);
+  }
+}
+
+@media (max-width: 520px) {
+  .find-buddy-page {
+    padding: 40px 18px 80px;
+  }
+
+  .find-buddy-grid {
+    grid-template-columns: 1fr;
+  }
+}

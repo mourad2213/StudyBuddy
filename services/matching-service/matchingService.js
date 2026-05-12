@@ -136,41 +136,57 @@ async function getUserNames(userIds) {
   return userNameMap;
 }
 
-export async function getRecommendations(userId, limit = 10) {
-  const currentUserNames = await getUserNames([userId]);
-  const currentUserName = currentUserNames.get(userId);
+// export async function getRecommendations(userId, limit = 10) {
+//   const currentUserNames = await getUserNames([userId]);
+//   const currentUserName = currentUserNames.get(userId);
 
-  const matchValues = Array.from(new Set([userId, currentUserName].filter(Boolean)));
+//   const matchValues = Array.from(new Set([userId, currentUserName].filter(Boolean)));
 
-  const recommendations = await prisma.matchRecommendation.findMany({
-    where: matchValues.length > 0 ? {
-      OR: matchValues.flatMap((value) => ([
-        { userId: value },
-        { candidateId: value },
-      ])),
-    } : { OR: [{ userId }, { candidateId: userId }] },
-    orderBy: [{ score: 'desc' }, { createdAt: 'desc' }],
-    // where: { userId },
-    // orderBy: { score: "desc" },
-    take: limit,
-  });
+//   const recommendations = await prisma.matchRecommendation.findMany({
+//     where: matchValues.length > 0 ? {
+//       OR: matchValues.flatMap((value) => ([
+//         { userId: value },
+//         { candidateId: value },
+//       ])),
+//     } : { OR: [{ userId }, { candidateId: userId }] },
+//     orderBy: [{ score: 'desc' }, { createdAt: 'desc' }],
+//     // where: { userId },
+//     // orderBy: { score: "desc" },
+//     take: limit,
+//   });
 
   
 
-  const userNames = await getUserNames([
-    ...recommendations.map((rec) => rec.userId),
-    ...recommendations.map((rec) => rec.candidateId),
-    userId,
-    currentUserName,
-  ]);
+//   const userNames = await getUserNames([
+//     ...recommendations.map((rec) => rec.userId),
+//     ...recommendations.map((rec) => rec.candidateId),
+//     userId,
+//     currentUserName,
+//   ]);
 
-  return recommendations.map((rec) => ({
-    ...rec,
-    userName: userNames.get(rec.userId) || rec.userId,
-    candidateName: userNames.get(rec.candidateId) || rec.candidateId,
-  }));
+//   return recommendations.map((rec) => ({
+//     ...rec,
+//     userName: userNames.get(rec.userId) || rec.userId,
+//     candidateName: userNames.get(rec.candidateId) || rec.candidateId,
+//   }));
+// }
+export async function getRecommendations(userId, limit = 10) {
+  const recommendations = await prisma.matchRecommendation.findMany({
+    where: {
+      userId,
+      candidateId: {
+        not: userId,
+      },
+    },
+    orderBy: [
+      { score: "desc" },
+      { createdAt: "desc" },
+    ],
+    take: limit,
+  });
+
+  return recommendations;
 }
-
 export async function generateAndStoreRecommendations(userId) {
   const userData = await prisma.cachedUserData.findUnique({
     where: { id: userId },

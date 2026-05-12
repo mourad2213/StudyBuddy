@@ -20,6 +20,7 @@ import ProfileSetup from "./pages/ProfileSetup";
 import StudyPreferences from "./pages/StudyPreferences";
 import UserProfile from "./pages/UserProfile";
 import Dashboard from "./pages/Dashboard";
+import FindBuddyPage from "./pages/recommendations.jsx";
 
 import "./App.css";
 
@@ -44,6 +45,7 @@ function AppContent() {
           <Route path="/availability" element={<AvailabilityPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/about-us" element={<AboutUs />} />
+          <Route path="/find-buddy" element={<FindBuddyPage />} />
 
           {/* Match Details */}
           <Route path="/match/:userId" element={<MatchDetailsPage />} />

@@ -27,16 +27,32 @@ async function connectKafka() {
 }
 
 async function sendEvent(eventName, payload) {
+  const message = {
+    eventName,
+    event: eventName, // keep this for services that use "event"
+    timestamp: new Date().toISOString(),
+    service: "profile-service",
+    producerService: "profile-service",
+    correlationId: payload.userId || "system",
+    payload,
+  };
+
+  // Send to the specific topic matching-service listens to
+  await producer.send({
+    topic: eventName,
+    messages: [
+      {
+        value: JSON.stringify(message),
+      },
+    ],
+  });
+
+  // Also keep sending to study-events for notification/messaging services
   await producer.send({
     topic: "study-events",
     messages: [
       {
-        value: JSON.stringify({
-          event: eventName,
-          timestamp: new Date().toISOString(),
-          service: "profile-service",
-          payload
-        }),
+        value: JSON.stringify(message),
       },
     ],
   });
