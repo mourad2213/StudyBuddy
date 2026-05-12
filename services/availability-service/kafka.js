@@ -1,4 +1,5 @@
 const { Kafka } = require("kafkajs");
+require("dotenv").config();
 
 // ============================================
 // VALIDATE REQUIRED AIVEN CONFIGURATION
@@ -7,6 +8,8 @@ const validateKafkaConfig = () => {
   const brokers = process.env.KAFKA_BROKERS?.trim();
   const username = process.env.KAFKA_USERNAME?.trim();
   const password = process.env.KAFKA_PASSWORD?.trim();
+
+  console.log("KAFKA_BROKERS raw value:", JSON.stringify(brokers));
 
   if (!brokers) {
     throw new Error(
@@ -41,7 +44,9 @@ const kafka = new Kafka({
   brokers,
 
   // ✅ ALWAYS use SSL for Aiven
-  ssl: true,
+  ssl: {
+    rejectUnauthorized: false,
+  },
 
   // ✅ ALWAYS use SASL plain for Aiven
   sasl: {
@@ -58,6 +63,9 @@ const kafka = new Kafka({
     multiplier: 2,
   },
 });
+
+// ✅ FIX: producer was never instantiated
+const producer = kafka.producer();
 
 // ============================================
 // PRODUCER CONNECTION
