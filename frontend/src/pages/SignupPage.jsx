@@ -13,16 +13,71 @@ function SignupPage() {
     password: "",
   });
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [confirmError, setConfirmError] = useState("");
 
   const [registerUser] = useMutation(REGISTER_USER);
+
+  const isValidEmail = (value) => /\S+@\S+\.\S+/.test(value);
+
+  const handleFormKeyDown = (e) => {
+    if (e.key !== "Enter") return;
+
+    const focusable = Array.from(
+      e.currentTarget.querySelectorAll("input, button[type='submit']"),
+    );
+    const activeElement = document.activeElement;
+
+    if (activeElement && activeElement.id === "signup-email") {
+      const trimmedEmail = form.email.trim();
+      if (!isValidEmail(trimmedEmail)) {
+        e.preventDefault();
+        setEmailError("Enter a valid email");
+        return;
+      }
+      setEmailError("");
+    }
+
+    if (activeElement && activeElement.id === "signup-confirm-password") {
+      if (confirmPassword && confirmPassword !== form.password) {
+        e.preventDefault();
+        setConfirmError("Passwords do not match");
+        return;
+      }
+      setConfirmError("");
+    }
+
+    const currentIndex = focusable.indexOf(document.activeElement);
+    const next = focusable[currentIndex + 1];
+
+    if (next && next.tagName === "BUTTON") {
+      e.preventDefault();
+      e.currentTarget.requestSubmit();
+      return;
+    }
+
+    if (next) {
+      e.preventDefault();
+      next.focus();
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (confirmPassword && confirmPassword !== form.password) {
-      alert("Passwords do not match.");
+    const trimmedEmail = form.email.trim();
+    if (!isValidEmail(trimmedEmail)) {
+      setEmailError("Enter a valid email");
       return;
     }
+    setEmailError("");
+
+    if (confirmPassword && confirmPassword !== form.password) {
+      setConfirmError("Passwords do not match");
+      return;
+    }
+
+    setConfirmError("");
 
     const res = await registerUser({
       variables: form,
@@ -41,7 +96,11 @@ function SignupPage() {
           <h1 className="signup-title">Create Your Account</h1>
         </div>
 
-        <form className="signup-card" onSubmit={handleSubmit}>
+        <form
+          className="signup-card"
+          onSubmit={handleSubmit}
+          onKeyDown={handleFormKeyDown}
+        >
           <h2 className="signup-card-title">
             Sign up to start finding study buddies
           </h2>
@@ -64,9 +123,16 @@ function SignupPage() {
             placeholder="Enter your email"
             autoComplete="email"
             value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
+            onChange={(e) => {
+              const value = e.target.value;
+              setForm({ ...form, email: value });
+              if (emailError && isValidEmail(value.trim())) {
+                setEmailError("");
+              }
+            }}
             required
           />
+          {emailError && <p className="signup-error">{emailError}</p>}
 
           <FormInput
             id="signup-password"
@@ -75,7 +141,12 @@ function SignupPage() {
             placeholder="Enter your password"
             autoComplete="new-password"
             value={form.password}
-            onChange={(e) => setForm({ ...form, password: e.target.value })}
+            onChange={(e) => {
+              setForm({ ...form, password: e.target.value });
+              if (confirmError && confirmPassword === e.target.value) {
+                setConfirmError("");
+              }
+            }}
             required
           />
 
@@ -86,9 +157,16 @@ function SignupPage() {
             placeholder="Confirm your password"
             autoComplete="new-password"
             value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value;
+              setConfirmPassword(value);
+              if (confirmError && value === form.password) {
+                setConfirmError("");
+              }
+            }}
             required
           />
+          {confirmError && <p className="signup-error">{confirmError}</p>}
 
           <button className="signup-button" type="submit">
             Create Account

@@ -3,10 +3,12 @@ import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import ProfilePage from "./pages/ProfilePage";
+import MatchDetailsPage from "./pages/MatchDetailsPage";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import AvailabilityPage from "./pages/AvailabilityPage.jsx";
 import NotificationsPage from "./pages/NotificationsPage.jsx";
+import FriendRequests from "./pages/FriendRequests.jsx";
 import "./App.css";
 function App() {
   return (
@@ -19,8 +21,10 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/match/:userId" element={<MatchDetailsPage />} />
             <Route path="/availability" element={<AvailabilityPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
+            <Route path="/requests" element={<FriendRequests />} />
           </Routes>
         </main>
         <Footer />

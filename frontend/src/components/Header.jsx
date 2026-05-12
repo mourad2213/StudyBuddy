@@ -59,12 +59,16 @@ export default function Header() {
           <Link to="/" className="nav-link" onClick={closeMenu}>
             Home
           </Link>
-          <Link to="/" className="nav-link" onClick={closeMenu}>
-            Find Buddy
-          </Link>
-          <Link to="/" className="nav-link" onClick={closeMenu}>
-            Sessions
-          </Link>
+          {isLoggedIn && (
+            <>
+              <Link to="/" className="nav-link" onClick={closeMenu}>
+                Find Buddy
+              </Link>
+              <Link to="/" className="nav-link" onClick={closeMenu}>
+                Sessions
+              </Link>
+            </>
+          )}
           <Link to="/" className="nav-link" onClick={closeMenu}>
             About Us
           </Link>
@@ -119,6 +123,28 @@ export default function Header() {
                       type="button"
                       className="menu-item"
                       role="menuitem"
+                      onClick={() => {
+                        closeProfileMenu();
+                        navigate("/requests");
+                      }}
+                    >
+                      My Buddy Requests
+                    </button>
+                    <button
+                      type="button"
+                      className="menu-item"
+                      role="menuitem"
+                      onClick={() => {
+                        closeProfileMenu();
+                        navigate("/notifications");
+                      }}
+                    >
+                      My Notifications
+                    </button>
+                    <button
+                      type="button"
+                      className="menu-item"
+                      role="menuitem"
                       onClick={handleLogout}
                     >
                       Log out
@@ -151,6 +177,28 @@ export default function Header() {
                 </button>
                 {isProfileMenuOpen && (
                   <div className="menu-dropdown" role="menu">
+                    <button
+                      type="button"
+                      className="menu-item"
+                      role="menuitem"
+                      onClick={() => {
+                        closeProfileMenu();
+                        navigate("/requests");
+                      }}
+                    >
+                      My Buddy Requests
+                    </button>
+                    <button
+                      type="button"
+                      className="menu-item"
+                      role="menuitem"
+                      onClick={() => {
+                        closeProfileMenu();
+                        navigate("/notifications");
+                      }}
+                    >
+                      My Notifications
+                    </button>
                     <button
                       type="button"
                       className="menu-item"
