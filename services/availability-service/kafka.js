@@ -45,7 +45,8 @@ const kafka = new Kafka({
 
   // ✅ ALWAYS use SSL for Aiven
   ssl: {
-    rejectUnauthorized: false,
+    ca: [process.env.KAFKA_CA_CERT?.replace(/\\n/g, '\n')],
+    rejectUnauthorized: true,
   },
 
   // ✅ ALWAYS use SASL plain for Aiven
