@@ -18,7 +18,7 @@ const DAYS = [
   { value: 3, label: "Thursday" },
   { value: 4, label: "Friday" },
 ];
-const AVAILABILITY_GRAPHQL = API_CONFIG.MATCHING_SERVICE;
+const AVAILABILITY_GRAPHQL = API_CONFIG.AVAILABILITY_SERVICE;
 // function addOneHour(time) {
 //   const [hours, minutes] = time.split(":").map(Number);
 //   const newHours = (hours + 1).toString().padStart(2, "0");
