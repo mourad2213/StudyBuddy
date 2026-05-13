@@ -1,9 +1,6 @@
 const { Kafka } = require("kafkajs");
 require("dotenv").config();
 
-// ============================================
-// VALIDATE REQUIRED AIVEN CONFIGURATION
-// ============================================
 const validateKafkaConfig = () => {
   const brokers = process.env.KAFKA_BROKERS?.trim();
   const username = process.env.KAFKA_USERNAME?.trim();
@@ -34,9 +31,6 @@ if (brokers.length === 0) {
   throw new Error("No valid brokers found after parsing KAFKA_BROKERS");
 }
 
-// ============================================
-// KAFKA CLIENT - AIVEN ONLY
-// ============================================
 const kafka = new Kafka({
   clientId: "availability-service",
   brokers,
@@ -60,9 +54,6 @@ const kafka = new Kafka({
 // ✅ FIX: producer was never instantiated
 const producer = kafka.producer();
 
-// ============================================
-// PRODUCER CONNECTION
-// ============================================
 const connectProducer = async () => {
   let retries = 10;
 

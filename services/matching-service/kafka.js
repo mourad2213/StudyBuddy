@@ -160,11 +160,22 @@ export async function disconnectProducer() {
 // SUBSCRIPTIONS
 // ============================================
 export async function subscribeToEvents() {
-  await consumer.subscribe({ topic: MATCHING_EVENTS.USER_PREFERENCES_UPDATED, fromBeginning: false });
-  await consumer.subscribe({ topic: MATCHING_EVENTS.AVAILABILITY_CREATED, fromBeginning: false });
-  await consumer.subscribe({ topic: MATCHING_EVENTS.AVAILABILITY_UPDATED, fromBeginning: false });
-  await consumer.subscribe({ topic: MATCHING_EVENTS.AVAILABILITY_DELETED, fromBeginning: false });
-  await consumer.subscribe({ topic: MATCHING_EVENTS.BUDDY_REQUEST_CREATED, fromBeginning: false });
+  const topics = [
+    MATCHING_EVENTS.USER_PREFERENCES_UPDATED,
+    MATCHING_EVENTS.AVAILABILITY_CREATED,
+    MATCHING_EVENTS.AVAILABILITY_UPDATED,
+    MATCHING_EVENTS.AVAILABILITY_DELETED,
+    MATCHING_EVENTS.BUDDY_REQUEST_CREATED,
+  ];
+
+  for (const topic of topics) {
+    try {
+      await consumer.subscribe({ topic, fromBeginning: false });
+      console.log(`✅ Subscribed to: ${topic}`);
+    } catch (err) {
+      console.error(`❌ Failed to subscribe to topic "${topic}":`, err.message);
+    }
+  }
   console.log('✅ Matching service subscribed to events');
 }
 
