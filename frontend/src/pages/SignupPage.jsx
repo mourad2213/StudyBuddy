@@ -79,12 +79,9 @@ function SignupPage() {
     }
 
     setEmailError("");
+    setConfirmError("");         // ← moved up, no longer depends on res
 
-    localStorage.setItem("token", res.data.register.token);
-    localStorage.setItem("username", res.data.register.user.name);
-    localStorage.setItem("userid", res.data.register.user.id);
-
-    setConfirmError("");
+    // ↓ removed the 3 broken localStorage lines that referenced res too early
 
     try {
       const res = await registerUser({
@@ -96,29 +93,20 @@ function SignupPage() {
 
       const { token, user } = res.data.register;
 
-      // Save user data
       localStorage.setItem("token", token);
       localStorage.setItem("userId", user.id);
       localStorage.setItem("userName", user.name);
       localStorage.setItem("userEmail", user.email);
-
-      // Save full user object for Header component
       localStorage.setItem(
         "user",
-        JSON.stringify({
-          id: user.id,
-          name: user.name,
-          email: user.email,
-        }),
+        JSON.stringify({ id: user.id, name: user.name, email: user.email }),
       );
 
-      // Go to onboarding flow
       navigate("/profile-setup");
     } catch (error) {
       console.error("Registration error:", error);
     }
   };
-
   return (
     <div className="signup-page">
       <div className="signup-shell">

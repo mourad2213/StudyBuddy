@@ -16,7 +16,7 @@ import { RESPOND_TO_SESSION_INVITATION } from "../graphql/mutations/sessions";
 import notificationArrow from "../assets/notification-arrow.png";
 import "../App.css";
 export default function NotificationsPage() {
-  const currentUserId = localStorage.getItem("userid");
+  const currentUserId = localStorage.getItem("userId");
 
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -110,7 +110,7 @@ export default function NotificationsPage() {
       .filter((notification) =>
         notification.message.toLowerCase().includes(searchTerm.toLowerCase())
       )
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      .sort((a, b) => Number(b.createdAt) - Number(a.createdAt));
   }, [notifications, searchTerm]);
 
   const unreadNotifications = filteredNotifications.filter(
