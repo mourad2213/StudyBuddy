@@ -16,13 +16,13 @@ const server = new ApolloServer({
 });
 
 await server.start();
-server.applyMiddleware({ app }); //Mount GraphQL endpoint , this creates the localhost:4000/graphql endpoint where we can send our queries and mutations
+server.applyMiddleware({ app }); //Mount GraphQL endpoint , this creates the localhost:4001/graphql endpoint where we can send our queries and mutations
 
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 4001;
 
 app.listen(PORT, () => {
   console.log(`User service running on port ${PORT}`);
-}); // start the server on port 5000
+}); // start the server on port 4001
 
 try {
   await connectProducer();
