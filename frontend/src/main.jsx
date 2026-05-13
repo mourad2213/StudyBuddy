@@ -11,6 +11,18 @@ import App from "./App";
 import "./index.css";
 
 /* =========================
+   Debug ENV Vars
+========================= */
+console.log("🔍 ENV VARS CHECK:");
+console.log("VITE_USER_URL:", import.meta.env.VITE_USER_URL);
+console.log("VITE_PROFILE_URL:", import.meta.env.VITE_PROFILE_URL);
+console.log("VITE_SESSION_URL:", import.meta.env.VITE_SESSION_URL);
+console.log("VITE_NOTIFICATION_URL:", import.meta.env.VITE_NOTIFICATION_URL);
+console.log("VITE_MATCHING_URL:", import.meta.env.VITE_MATCHING_URL);
+console.log("VITE_MESSAGING_URL:", import.meta.env.VITE_MESSAGING_URL);
+console.log("VITE_AVAILABILITY_URL:", import.meta.env.VITE_AVAILABILITY_URL);
+
+/* =========================
    Service URLs
 ========================= */
 const userServiceUrl = import.meta.env.VITE_USER_URL || "http://localhost:4001/graphql";
@@ -20,6 +32,15 @@ const notificationServiceUrl = import.meta.env.VITE_NOTIFICATION_URL || "http://
 const matchingServiceUrl = import.meta.env.VITE_MATCHING_URL || "http://localhost:4002/graphql";
 const messagingServiceUrl = import.meta.env.VITE_MESSAGING_URL || "http://localhost:4003/graphql";
 const availabilityServiceUrl = import.meta.env.VITE_AVAILABILITY_URL || "http://localhost:4004/graphql";
+
+console.log("🔍 RESOLVED SERVICE URLS:");
+console.log("User:", userServiceUrl);
+console.log("Profile:", profileServiceUrl);
+console.log("Session:", sessionServiceUrl);
+console.log("Notification:", notificationServiceUrl);
+console.log("Matching:", matchingServiceUrl);
+console.log("Messaging:", messagingServiceUrl);
+console.log("Availability:", availabilityServiceUrl);
 
 /* =========================
    HTTP Links
@@ -110,27 +131,34 @@ const availabilityOperations = [
 ========================= */
 const routerLink = new ApolloLink((operation) => {
   const { operationName } = operation;
+  console.log("🔀 Routing operation:", operationName);
 
   if (sessionOperations.includes(operationName)) {
+    console.log("→ Session service");
     return sessionServiceLink.request(operation);
   }
   if (notificationOperations.includes(operationName)) {
+    console.log("→ Notification service");
     return notificationServiceLink.request(operation);
   }
   if (profileOperations.includes(operationName)) {
+    console.log("→ Profile service");
     return profileServiceLink.request(operation);
   }
   if (matchingOperations.includes(operationName)) {
+    console.log("→ Matching service");
     return matchingServiceLink.request(operation);
   }
   if (messagingOperations.includes(operationName)) {
+    console.log("→ Messaging service");
     return messagingServiceLink.request(operation);
   }
   if (availabilityOperations.includes(operationName)) {
+    console.log("→ Availability service");
     return availabilityServiceLink.request(operation);
   }
 
-  // DEFAULT -> USER SERVICE
+  console.log("→ User service (default)");
   return userServiceLink.request(operation);
 });
 
