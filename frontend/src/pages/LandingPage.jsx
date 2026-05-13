@@ -62,9 +62,7 @@ const LandingPage = () => {
     data: profilesData,
     loading: profilesLoading,
     error: profilesError,
-  } = useQuery(GET_ALL_PROFILES, {
-    context: { uri: PROFILE_GRAPHQL },
-  });
+  } = useQuery(GET_ALL_PROFILES);
 
   // Merge users with profiles to build buddy cards.
   const buddyCards = useMemo(() => {

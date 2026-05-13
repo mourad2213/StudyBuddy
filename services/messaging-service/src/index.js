@@ -16,7 +16,7 @@ import {
   subscribeToEvents,
 } from "../kafka.js";
 import { registerMatchedPair } from "../graphql/resolvers/message.resolver.js";
-import { setupWebSocket, sendToUser } from "./websocket.js";
+import { setupWebSocket, sendToUser, getRegistryStatus, getDBRegistryStatus } from "./websocket.js";
 
 const prisma = new PrismaClient();
 const app = express();
@@ -29,6 +29,17 @@ app.use(express.json());
 // Health check
 app.get("/health", (req, res) => {
   res.json({ status: "ok", service: "messaging-service" });
+});
+
+// Debug endpoint - WebSocket registry status
+app.get("/debug/websocket-status", (req, res) => {
+  res.json(getRegistryStatus());
+});
+
+// Debug endpoint - Database registry status
+app.get("/debug/db-sessions", async (req, res) => {
+  const status = await getDBRegistryStatus();
+  res.json(status);
 });
 
 // Apollo Server setup

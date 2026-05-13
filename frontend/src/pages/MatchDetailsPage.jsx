@@ -48,15 +48,11 @@ export default function MatchDetailsPage() {
   }, [loginPrompt]);
 
   const [createBuddyRequest, { loading: creatingRequest }] = useMutation(
-    CREATE_BUDDY_REQUEST,
-    {
-      context: { uri: MATCHING_GRAPHQL },
-    },
+    CREATE_BUDDY_REQUEST
   );
 
   const [createConversation, { loading: creatingConversation }] = useMutation(
-    CREATE_CONVERSATION,
-    { context: { uri: MESSAGING_GRAPHQL } },
+    CREATE_CONVERSATION
   );
 
   const {
@@ -66,7 +62,6 @@ export default function MatchDetailsPage() {
   } = useQuery(GET_PROFILE, {
     variables: { userId: userId || "" },
     skip: !userId,
-    context: { uri: PROFILE_GRAPHQL },
   });
 
   const {

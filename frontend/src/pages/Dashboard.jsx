@@ -100,31 +100,25 @@ export default function Dashboard() {
 
   const { data: usersData, loading: usersLoading, error: usersError } = useQuery(GET_ALL_USERS, {
     fetchPolicy: "cache-and-network",
-    context: { uri: API_CONFIG.USER_SERVICE },
   });
 
   const { data: profilesData, loading: profilesLoading, error: profilesError } = useQuery(GET_ALL_PROFILES, {
     fetchPolicy: "cache-and-network",
-    context: { uri: API_CONFIG.PROFILE_SERVICE },
   });
 
   const { data: upcomingData, loading: upcomingLoading, error: upcomingError } = useQuery(GET_UPCOMING_SESSIONS, {
     skip: !sessionUserId,
     variables: { userId: sessionUserId },
     fetchPolicy: "cache-and-network",
-    context: { uri: API_CONFIG.SESSION_SERVICE },
   });
 
   const { data: notificationsData, loading: notificationsLoading } = useQuery(GET_NOTIFICATIONS, {
     skip: !currentUserId,
     variables: { userId: currentUserId },
     fetchPolicy: "cache-and-network",
-    context: { uri: API_CONFIG.NOTIFICATION_SERVICE },
   });
 
-  const [createBuddyRequest] = useMutation(CREATE_BUDDY_REQUEST, {
-    context: { uri: API_CONFIG.MATCHING_SERVICE },
-  });
+  const [createBuddyRequest] = useMutation(CREATE_BUDDY_REQUEST);
 
   
   //const currentProfile = profileData?.getProfile;

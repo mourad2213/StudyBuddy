@@ -52,7 +52,6 @@ export default function FriendRequests() {
   } = useQuery(GET_INCOMING_BUDDY_REQUESTS, {
     variables: { userId: userId || "" },
     skip: !userId,
-    context: { uri: MATCHING_GRAPHQL },
   });
 
   const {
@@ -63,7 +62,6 @@ export default function FriendRequests() {
   } = useQuery(GET_OUTGOING_BUDDY_REQUESTS, {
     variables: { userId: userId || "" },
     skip: !userId,
-    context: { uri: MATCHING_GRAPHQL },
   });
 
   const {
@@ -74,7 +72,6 @@ export default function FriendRequests() {
   } = useQuery(GET_CONNECTIONS, {
     variables: { userId: userId || "" },
     skip: !userId,
-    context: { uri: MATCHING_GRAPHQL },
   });
 
   const {
@@ -91,15 +88,10 @@ export default function FriendRequests() {
     error: profilesError,
   } = useQuery(GET_ALL_PROFILES, {
     skip: !userId,
-    context: { uri: PROFILE_GRAPHQL },
   });
 
-  const [acceptBuddyRequest] = useMutation(ACCEPT_BUDDY_REQUEST, {
-    context: { uri: MATCHING_GRAPHQL },
-  });
-  const [rejectBuddyRequest] = useMutation(REJECT_BUDDY_REQUEST, {
-    context: { uri: MATCHING_GRAPHQL },
-  });
+  const [acceptBuddyRequest] = useMutation(ACCEPT_BUDDY_REQUEST);
+  const [rejectBuddyRequest] = useMutation(REJECT_BUDDY_REQUEST);
 
   const requestGroups = useMemo(() => {
     const users = usersData?.getAllUsers || [];

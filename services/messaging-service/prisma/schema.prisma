@@ -37,3 +37,15 @@ model Message {
   @@index([senderId])
   @@index([createdAt])
 }
+
+model WebSocketSession {
+  id           String   @id @default(cuid())
+  userId       String
+  connectionId String   @unique // Unique per WebSocket connection
+  connectedAt  DateTime @default(now())
+  lastHeartbeat DateTime @updatedAt
+  isActive     Boolean  @default(true)
+
+  @@index([userId])
+  @@index([isActive])
+}

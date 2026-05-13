@@ -151,7 +151,6 @@ export default function Sessions() {
 
   const { data: usersData } = useQuery(GET_ALL_USERS, {
     fetchPolicy: "cache-and-network",
-    context: { uri: "http://localhost:4001/graphql" },
   });
 
   const { data: upcomingData, loading: upcomingLoading, error: upcomingError } = useQuery(
