@@ -9,7 +9,6 @@ import {
   WEIGHTS,
 } from "../../matchingService.js";
 import { produceEvent, MATCHING_EVENTS } from "../../kafka.js";
-import { PrismaClient } from '@prisma/client';
 
 
 export const resolvers = {
@@ -17,25 +16,12 @@ export const resolvers = {
     getRecommendations: async (_, { userId, limit = 10 }) => {
       try {
         console.log(`[getRecommendations] Fetching for userId: ${userId}, limit: ${limit}`);
-        
-        // Direct database query to avoid the broken getUserNames() function
-        const recommendations = await prisma.matchRecommendation.findMany({
-          where: {
-            OR: [
-              { userId },
-              { candidateId: userId },
-            ],
-          },
-          orderBy: [{ score: 'desc' }, { createdAt: 'desc' }],
-          take: limit,
-        });
-        
+        const recommendations = await getRecommendations(userId, limit);
         console.log(`[getRecommendations] Found ${recommendations.length} recommendations`);
         return recommendations;
       } catch (error) {
         console.error('[getRecommendations] Error:', error.message);
         console.error('[getRecommendations] Stack:', error.stack);
-        console.error("Error fetching recommendations:", error);
         throw new Error(`Failed to fetch recommendations: ${error.message}`);
       }
     },

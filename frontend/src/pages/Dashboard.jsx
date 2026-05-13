@@ -90,13 +90,13 @@ export default function Dashboard() {
 
   const { data: upcomingData, loading: upcomingLoading, error: upcomingError } = useQuery(GET_UPCOMING_SESSIONS, {
     skip: !currentUserId,
-    variables: { userId: currentUserId },
+    variables: { userId: currentUserName },
     fetchPolicy: "cache-and-network",
   });
 
   const { data: notificationsData, loading: notificationsLoading } = useQuery(GET_NOTIFICATIONS, {
     skip: !currentUserId,
-    variables: { userId: currentUserId },
+    variables: { userId: currentUserName },
     fetchPolicy: "cache-and-network",
     context: { uri: "http://localhost:4005/graphql" },
   });
@@ -238,7 +238,7 @@ export default function Dashboard() {
                   <Link to="/create-session" className="dashboard-button">Create your first session</Link>
                 </div>
               ) : (
-                <div className="sessions-grid">
+                <div className="minisessions-grid">
                   {upcomingSessions.slice(0, 4).map((session) => (
                     <div key={session.id} className="session-card">
                       <div className="session-card-top">

@@ -20,19 +20,11 @@ export default function CreateSession() {
       "Me";
   }
 
-  if (currentUserName === "Me") {
-    const systemKeys = new Set(["token", "userId", "user", "cart", "favoriteColor"]);
-    const userIdUuid = localStorage.getItem("userId") || "";
-    const possibleUsernameKey = Object.keys(localStorage).find(
-      (key) => !systemKeys.has(key) && key !== userIdUuid && !key.match(/^[0-9a-f\-]{36}$/)
-    );
-
-    if (possibleUsernameKey) {
-      currentUserName = possibleUsernameKey;
-    }
-  }
-
-  const userName = currentUserName === "Me" ? "" : currentUserName;
+  const userName = localStorage.getItem("username") || 
+    storedUser.loginUsername ||
+    storedUser.actual_username ||
+    storedUser.username ||
+    "";
   const matchingServiceUrl =
     import.meta.env.VITE_MATCHING_SERVICE_URL ||
     "http://localhost:4003/graphql";
@@ -62,6 +54,7 @@ export default function CreateSession() {
 
     const loadRecommendations = async () => {
       try {
+        console.log("[CreateSession] Loading recommendations for userName:", userName);
         const response = await fetch(matchingServiceUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -78,10 +71,12 @@ export default function CreateSession() {
         });
 
         const result = await response.json();
+        console.log("[CreateSession] Recommendations API response:", result);
 
         // If recommendations API works, use those results
         if (result.data?.getRecommendations && !result.errors) {
           const recommendations = result.data.getRecommendations;
+          console.log("[CreateSession] Got recommendations count:", recommendations.length);
           const mapped = recommendations.map((rec) => ({
             userId: rec.userId,
             candidateId: rec.candidateId,
@@ -91,6 +86,7 @@ export default function CreateSession() {
             score: rec.score,
             availability: `Recommended match • score ${rec.score}`,
           }));
+          console.log("[CreateSession] Mapped buddies:", mapped);
           if (isActive) {
             setRecommendedBuddies(mapped);
           }

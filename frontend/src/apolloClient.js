@@ -23,14 +23,13 @@ const authLink = new ApolloLink((operation, forward) => {
   return forward(operation);
 });
 
-const dynamicHttpLink = new ApolloLink((operation) => {
-  const uri = operation.getContext().uri || "http://localhost:4001/graphql";
-  const httpLink = new HttpLink({ uri });
-  return httpLink.request(operation);
+// Fixed: Use session-service URL since that's what Sessions and CreateSession pages need
+const httpLink = new HttpLink({
+  uri: import.meta.env.VITE_SESSION_SERVICE_URL || "http://localhost:4007/graphql",
 });
 
 const client = new ApolloClient({
-  link: authLink.concat(dynamicHttpLink),
+  link: authLink.concat(httpLink),
   cache: new InMemoryCache(),
 });
 
