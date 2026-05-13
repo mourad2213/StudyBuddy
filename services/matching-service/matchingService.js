@@ -1,9 +1,11 @@
-import { PrismaClient } from '@prisma/client';
-import { MATCHING_WEIGHTS } from './kafka.js';
+import { PrismaClient } from "@prisma/client";
+import { MATCHING_WEIGHTS } from "./kafka.js";
 
 const prisma = new PrismaClient();
 
 export const WEIGHTS = MATCHING_WEIGHTS;
+
+
 
 export async function calculateCompatibility(userId, candidateData) {
   const cachedUser = await prisma.cachedUserData.findUnique({
@@ -17,28 +19,32 @@ export async function calculateCompatibility(userId, candidateData) {
   let score = 0;
   const reasons = [];
 
-  const sharedCourses = candidateData.courses?.filter((c) =>
-    cachedUser.courses.includes(c)
-  ) || [];
-  const courseScore = Math.min(100, (sharedCourses.length * 40));
+  const sharedCourses =
+    candidateData.courses?.filter((course) =>
+      cachedUser.courses.includes(course)
+    ) || [];
+
+  const courseScore = Math.min(100, sharedCourses.length * 40);
   score += (courseScore / 100) * WEIGHTS.SHARED_COURSES;
   if (sharedCourses.length > 0) {
     reasons.push({
-      type: 'SHARED_COURSES',
-      description: `Both enrolled in: ${sharedCourses.join(', ')}`,
+      type: "SHARED_COURSES",
+      description: `Both enrolled in: ${sharedCourses.join(", ")}`,
       weight: WEIGHTS.SHARED_COURSES,
     });
   }
 
-  const sharedTopics = candidateData.topics?.filter((t) =>
-    cachedUser.topics.includes(t)
-  ) || [];
-  const topicScore = Math.min(100, (sharedTopics.length * 50));
+  const sharedTopics =
+    candidateData.topics?.filter((topic) =>
+      cachedUser.topics.includes(topic)
+    ) || [];
+
+  const topicScore = Math.min(100, sharedTopics.length * 50);
   score += (topicScore / 100) * WEIGHTS.SHARED_TOPICS;
   if (sharedTopics.length > 0) {
     reasons.push({
-      type: 'SHARED_TOPICS',
-      description: `Similar study topics: ${sharedTopics.join(', ')}`,
+      type: "SHARED_TOPICS",
+      description: `Similar study topics: ${sharedTopics.join(", ")}`,
       weight: WEIGHTS.SHARED_TOPICS,
     });
   }
@@ -51,7 +57,7 @@ export async function calculateCompatibility(userId, candidateData) {
   score += (availabilityScore / 100) * WEIGHTS.OVERLAPPING_AVAILABILITY;
   if (overlapHours > 0) {
     reasons.push({
-      type: 'AVAILABILITY',
+      type: "AVAILABILITY",
       description: `${overlapHours} hours of overlapping availability`,
       weight: WEIGHTS.OVERLAPPING_AVAILABILITY,
     });
@@ -61,8 +67,8 @@ export async function calculateCompatibility(userId, candidateData) {
   if (preferencesMatch) {
     score += WEIGHTS.PREFERENCES_MATCH;
     reasons.push({
-      type: 'PREFERENCES',
-      description: 'Compatible study preferences',
+      type: "PREFERENCES",
+      description: "Compatible study preferences",
       weight: WEIGHTS.PREFERENCES_MATCH,
     });
   }
@@ -71,15 +77,14 @@ export async function calculateCompatibility(userId, candidateData) {
   if (styleMatch) {
     score += WEIGHTS.STUDY_STYLE;
     reasons.push({
-      type: 'STUDY_STYLE',
+      type: "STUDY_STYLE",
       description: `Same study style: ${cachedUser.studyStyle}`,
       weight: WEIGHTS.STUDY_STYLE,
     });
   }
 
-  const finalScore = Math.round(score);
   return {
-    score: finalScore,
+    score: Math.round(score),
     reasons,
   };
 }
@@ -114,7 +119,7 @@ function calculateAvailabilityOverlap(avail1, avail2) {
 }
 
 function timeToMinutes(time) {
-  const [hours, minutes] = time.split(':').map(Number);
+  const [hours, minutes] = time.split(":").map(Number);
   return hours * 60 + minutes;
 }
 
@@ -126,14 +131,64 @@ function checkPreferencesMatch(user1, user2) {
   return paceMatch && modeMatch && groupSizeDiff;
 }
 
+async function getUnavailableCandidateIds(userId) {
+  const requests = await prisma.buddyRequest.findMany({
+    where: {
+      status: {
+        in: ["PENDING", "ACCEPTED"],
+      },
+      OR: [{ fromUserId: userId }, { toUserId: userId }],
+    },
+    select: {
+      fromUserId: true,
+      toUserId: true,
+    },
+  });
+
+  return [
+    ...new Set(
+      requests.flatMap((request) => [request.fromUserId, request.toUserId])
+    ),
+  ].filter((candidateId) => candidateId !== userId);
+}
+
 export async function getRecommendations(userId, limit = 10) {
+  const unavailableCandidateIds = await getUnavailableCandidateIds(userId);
+
   const recommendations = await prisma.matchRecommendation.findMany({
-    where: { userId },
-    orderBy: { score: 'desc' },
+    where: {
+      OR: [
+        {
+          userId,
+          candidateId: {
+            not: userId,
+            notIn: unavailableCandidateIds,
+          },
+        },
+        {
+          candidateId: userId,
+          userId: {
+            not: userId,
+            notIn: unavailableCandidateIds,
+          },
+        },
+      ],
+    },
+    orderBy: [{ score: "desc" }, { createdAt: "desc" }],
     take: limit,
   });
 
-  return recommendations;
+  return recommendations.map((recommendation) => {
+    if (recommendation.userId === userId) {
+      return recommendation;
+    }
+
+    return {
+      ...recommendation,
+      userId,
+      candidateId: recommendation.userId,
+    };
+  });
 }
 
 export async function generateAndStoreRecommendations(userId) {
@@ -146,17 +201,29 @@ export async function generateAndStoreRecommendations(userId) {
   }
 
   const allCandidates = await prisma.cachedUserData.findMany({
-    where: { id: { not: userId } },
+    where: {
+      id: {
+        not: userId,
+      },
+    },
   });
+  const unavailableCandidateIds = await getUnavailableCandidateIds(userId);
 
   const recommendations = [];
 
   for (const candidate of allCandidates) {
+    if (unavailableCandidateIds.includes(candidate.id)) {
+      continue;
+    }
+
     const compatibility = await calculateCompatibility(userId, candidate);
 
     const recommendation = await prisma.matchRecommendation.upsert({
       where: {
-        userId_candidateId: { userId, candidateId: candidate.id },
+        userId_candidateId: {
+          userId,
+          candidateId: candidate.id,
+        },
       },
       update: {
         score: compatibility.score,
@@ -179,8 +246,81 @@ export async function generateAndStoreRecommendations(userId) {
 
 export async function acceptMatch(userId, candidateId) {
   return prisma.matchRecommendation.update({
-    where: { userId_candidateId: { userId, candidateId } },
-    data: { isAccepted: true },
+    where: {
+      userId_candidateId: {
+        userId,
+        candidateId,
+      },
+    },
+    data: {
+      isAccepted: true,
+    },
+  });
+}
+
+export async function createBuddyRequest(fromUserId, toUserId) {
+  return prisma.buddyRequest.upsert({
+    where: {
+      fromUserId_toUserId: {
+        fromUserId,
+        toUserId,
+      },
+    },
+    update: {
+      status: "PENDING",
+      updatedAt: new Date(),
+    },
+    create: {
+      fromUserId,
+      toUserId,
+      status: "PENDING",
+    },
+  });
+}
+
+export async function updateBuddyRequestStatus(fromUserId, toUserId, status) {
+  return prisma.buddyRequest.update({
+    where: {
+      fromUserId_toUserId: {
+        fromUserId,
+        toUserId,
+      },
+    },
+    data: {
+      status,
+    },
+  });
+}
+
+export async function getIncomingBuddyRequests(userId) {
+  return prisma.buddyRequest.findMany({
+    where: {
+      toUserId: userId,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+}
+
+export async function getOutgoingBuddyRequests(userId) {
+  return prisma.buddyRequest.findMany({
+    where: {
+      fromUserId: userId,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+}
+
+export async function getConnections(userId) {
+  return prisma.buddyRequest.findMany({
+    where: {
+      status: "ACCEPTED",
+      OR: [{ fromUserId: userId }, { toUserId: userId }],
+    },
+    orderBy: { createdAt: "desc" },
   });
 }
 

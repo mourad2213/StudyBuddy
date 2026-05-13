@@ -17,6 +17,8 @@ export const typeDefs = gql`
 
   type Query {
     getMe: User
+    # Unrestricted list of users for the public landing page.
+    getAllUsers: [User!]!
   }
 
   type Mutation {

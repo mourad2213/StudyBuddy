@@ -17,7 +17,7 @@ RUN npx prisma generate
 COPY . .
 # COPY .env ./
 # Expose your port
-EXPOSE 5000
+EXPOSE 4001
 
 # Start the app
 CMD ["node", "index.js"]

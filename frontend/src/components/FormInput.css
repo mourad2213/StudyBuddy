@@ -1,0 +1,43 @@
+@import "../assets/colors.css";
+@import "../assets/fonts.css";
+
+.sb-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.sb-form-label {
+  font-size: 12px;
+  letter-spacing: 0.4px;
+  color: var(--navy);
+  font-family: var(--font-inter);
+}
+
+.sb-form-input {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 8px;
+  border: 1px solid var(--sb-accent);
+  background: #f9f7f4;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: var(--font-inter);
+  color: var(--navy);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.sb-form-input::placeholder {
+  color: var(--navy);
+  font-family: var(--font-inter);
+}
+
+.sb-form-input:focus {
+  outline: none;
+  border-color: var(--sb-border);
+  box-shadow: 0 0 0 3px rgba(50, 64, 85, 0.15);
+}

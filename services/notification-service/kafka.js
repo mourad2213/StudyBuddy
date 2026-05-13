@@ -3,111 +3,35 @@ const { PrismaClient } = require("@prisma/client");
 
 const prisma = new PrismaClient();
 
-// ============================================
-// VALIDATE REQUIRED AIVEN CONFIGURATION
-// ============================================
-const validateKafkaConfig = () => {
-  const brokers = process.env.KAFKA_BROKERS?.trim();
-  const username = process.env.KAFKA_USERNAME?.trim();
-  const password = process.env.KAFKA_PASSWORD?.trim();
-
-  if (!brokers) {
-    throw new Error(
-      "KAFKA_BROKERS environment variable is required (comma-separated: host1:9092,host2:9092)"
-    );
-  }
-
-  if (!username || !password) {
-    throw new Error(
-      "KAFKA_USERNAME and KAFKA_PASSWORD environment variables are required for Aiven"
-    );
-  }
-
-  return { brokers, username, password };
-};
-
-const { brokers: brokerString, username, password } = validateKafkaConfig();
-const brokers = brokerString
-  .split(",")
-  .map((b) => b.trim())
-  .filter(Boolean);
-
-if (brokers.length === 0) {
-  throw new Error("No valid brokers found after parsing KAFKA_BROKERS");
-}
-
-// ============================================
-// KAFKA CLIENT - AIVEN ONLY
-// ============================================
 const kafka = new Kafka({
   clientId: "notification-service",
-  brokers,
-
-  ssl: true,
-  sasl: {
-    mechanism: "plain",
-    username,
-    password,
-  },
-
-  // Retry configuration
-  retry: {
-    initialRetryTime: 300,
-    retries: 8,
-    maxRetryTime: 30000,
-    multiplier: 2,
-  },
+  brokers: [process.env.KAFKA_BROKER || "kafka:29092"],
 });
 
-const consumer = kafka.consumer({
-  groupId: "notification-group",
-});
+const consumer = kafka.consumer({ groupId: "notification-group" });
 
-// ============================================
-// CONSUMER CONNECTION
-// ============================================
-const connectConsumer = async () => {
+const runConsumer = async () => {
   let retries = 10;
 
   while (retries > 0) {
     try {
       await consumer.connect();
-      console.log("✅ Kafka consumer connected (notification-service)");
-      return;
+      console.log("✅ Kafka consumer connected");
+      break;
     } catch (err) {
       retries--;
       console.log(
-        `⏳ Consumer not ready, retrying in 5s... (${retries} retries left)`
+        `⏳ Kafka not ready, retrying in 5s... (${retries} retries left)`,
       );
-      console.error(err.message);
       await new Promise((res) => setTimeout(res, 5000));
-
       if (retries === 0) {
-        console.error("❌ Consumer failed to connect to Kafka after retries");
-        throw new Error("Failed to connect Kafka consumer");
+        console.error("❌ Could not connect to Kafka after multiple retries");
+        return;
       }
     }
   }
-};
 
-const disconnectConsumer = async () => {
-  try {
-    await consumer.disconnect();
-    console.log("✅ Kafka consumer disconnected");
-  } catch (err) {
-    console.error("Error disconnecting consumer:", err.message);
-  }
-};
-
-// ============================================
-// RUN CONSUMER
-// ============================================
-const runConsumer = async () => {
-  await connectConsumer();
-
-  // ======================
-  // SUBSCRIPTIONS
-  // ======================
+  // Subscribe to multiple topics
   await consumer.subscribe({
     topic: "study-events",
     fromBeginning: false,
@@ -128,189 +52,227 @@ const runConsumer = async () => {
     fromBeginning: false,
   });
 
-  // ======================
-  // CONSUMER LOOP
-  // ======================
+  await consumer.subscribe({
+    topic: "BuddyRequestResponded",
+    fromBeginning: false,
+  });
+
   await consumer.run({
     eachMessage: async ({ topic, message }) => {
-      let event;
+      const event = JSON.parse(message.value.toString());
+      console.log("📩 RECEIVED EVENT:", event);
 
-      try {
-        event = JSON.parse(message.value.toString());
-        console.log("📩 RECEIVED EVENT:", event);
-      } catch (err) {
-        console.error("Invalid JSON message:", err);
-        return;
-      }
-
+      // Handle different event structures
       const eventType = event.eventName || event.event;
 
-      try {
-        switch (eventType) {
-          case "SESSION_CREATED":
-            await prisma.notification.create({
-              data: {
-                userId: event.payload.userId,
-                message: "A study session has been created.",
-                type: "SESSION_CREATED",
-              },
-            });
-            break;
+      switch (eventType) {
+        case "SESSION_CREATED":
+          await prisma.notification.create({
+            data: {
+              userId: event.payload.userId,
+              message: "A study session has been created.",
+              type: "SESSION_CREATED",
+            },
+          });
+          break;
 
-          case "SESSION_UPDATED":
-            await prisma.notification.create({
-              data: {
-                userId: event.payload.userId,
-                message: "A study session has been updated.",
-                type: "SESSION_UPDATED",
-              },
-            });
-            break;
+        case "SESSION_UPDATED":
+          await prisma.notification.create({
+            data: {
+              userId: event.payload.userId,
+              message: "A study session has been updated.",
+              type: "SESSION_UPDATED",
+            },
+          });
+          break;
 
-          case "SESSION_INVITATION_RECEIVED":
-            await prisma.notification.create({
+        case "SESSION_INVITATION_RECEIVED":
+          console.debug("kafka: SESSION_INVITATION_RECEIVED payload", event.payload);
+          try {
+            const created = await prisma.notification.create({
               data: {
                 userId: event.payload.userId,
-                message: "You received a session invitation.",
+                message: event.payload.sessionId 
+                  ? `[SESSION_ID:${event.payload.sessionId}] You received a session invitation.`
+                  : "You received a session invitation.",
                 type: "SESSION_INVITATION_RECEIVED",
               },
             });
-            break;
-
-          case "RecommendationsGenerated":
-            await prisma.notification.create({
-              data: {
-                userId: event.payload.userId,
-                message: `You have ${event.payload.recommendations.length} new study buddy recommendations!`,
-                type: "NEW_RECOMMENDATIONS",
-              },
-            });
-            break;
-
-          case "BuddyRequestCreated":
-            await prisma.notification.create({
-              data: {
-                userId: event.payload.toUserId,
-                message:
-                  "Someone wants to study with you! Check your buddy requests.",
-                type: "BUDDY_REQUEST_RECEIVED",
-              },
-            });
-            break;
-
-          case "MessageSent": {
-            const recipient =
-              event.payload.recipientId ||
-              event.payload.otherParticipant;
-
-            if (recipient) {
-              await prisma.notification.create({
-                data: {
-                  userId: recipient,
-                  message: `New message from ${
-                    event.payload.senderName || "a study buddy"
-                  }: ${event.payload.content?.substring(0, 50) || "New message"}${
-                    event.payload.content?.length > 50 ? "..." : ""
-                  }`,
-                  type: "MESSAGE_SENT",
-                },
-              });
-            }
-            break;
+            console.debug("kafka: created notification", { id: created.id, userId: created.userId, type: created.type });
+          } catch (err) {
+            console.error("kafka: failed creating SESSION_INVITATION_RECEIVED notification", { err, payload: event.payload });
           }
+          break;
 
-          case "ConversationCreated":
-            if (event.payload.participant1Id) {
-              await prisma.notification.create({
-                data: {
-                  userId: event.payload.participant1Id,
-                  message:
-                    "A new conversation has started with your study buddy!",
-                  type: "CONVERSATION_STARTED",
-                },
-              });
-            }
+        case "RecommendationsGenerated":
+          await prisma.notification.create({
+            data: {
+              userId: event.payload.userId,
+              message: `You have ${event.payload.recommendations.length} new study buddy recommendations!`,
+              type: "NEW_RECOMMENDATIONS",
+            },
+          });
+          break;
 
-            if (event.payload.participant2Id) {
-              await prisma.notification.create({
-                data: {
-                  userId: event.payload.participant2Id,
-                  message:
-                    "A new conversation has started with your study buddy!",
-                  type: "CONVERSATION_STARTED",
-                },
-              });
-            }
-            break;
+        case "BuddyRequestCreated":
+          await prisma.notification.create({
+            data: {
+              userId: event.payload.toUserId,
+              message:
+                "Someone wants to study with you! Check your buddy requests.",
+              type: "BUDDY_REQUEST_RECEIVED",
+            },
+          });
+          break;
 
-          case "StudySessionCreated":
-            if (
-              Array.isArray(event.payload.possibleMemberIds)
-            ) {
-              await Promise.all(
-                event.payload.possibleMemberIds
-                  .filter((id) => id !== event.payload.creatorId)
-                  .map((memberId) =>
-                    prisma.notification.create({
-                      data: {
-                        userId: memberId,
-                        message: `You've been invited to join a study session: "${event.payload.topic}"`,
-                        type: "SESSION_INVITATION_RECEIVED",
-                      },
-                    })
-                  )
-              );
-            }
-            break;
+        case "BuddyRequestResponded": {
+          const responseText =
+            event.payload.status === "ACCEPTED" ? "accepted" : "declined";
 
-          case "InvitationResponded":
-            if (event.payload.creatorId) {
-              await prisma.notification.create({
-                data: {
-                  userId: event.payload.creatorId,
-                  message: `User ${event.payload.userId} responded to your invitation.`,
-                  type: "INVITATION_RESPONSE",
-                },
-              });
-            }
-            break;
-
-          case "SessionJoined":
-            if (event.payload.creatorId) {
-              await prisma.notification.create({
-                data: {
-                  userId: event.payload.creatorId,
-                  message: `User ${event.payload.userId} requested to join your session.`,
-                  type: "SESSION_JOINED",
-                },
-              });
-            }
-            break;
-
-          case "SessionCancelled":
-            if (Array.isArray(event.payload.participantIds)) {
-              await Promise.all(
-                event.payload.participantIds.map((id) =>
-                  prisma.notification.create({
-                    data: {
-                      userId: id,
-                      message: `A session was cancelled.`,
-                      type: "SESSION_CANCELLED",
-                    },
-                  })
-                )
-              );
-            }
-            break;
-
-          default:
-            console.log(`⚠️ Unknown event type: ${eventType}`);
+          await prisma.notification.create({
+            data: {
+              userId: event.payload.fromUserId,
+              message: `User ${event.payload.toUserId} ${responseText} your buddy request.`,
+              type: "BUDDY_REQUEST_RESPONSE",
+            },
+          });
+          break;
         }
-      } catch (err) {
-        console.error("❌ Error handling event:", err);
+
+        // case "SESSION_REMINDER":
+        //   await prisma.notification.create({
+        //     data: {
+        //       userId: event.payload.userId,
+        //       message: "Reminder: You have an upcoming study session.",
+        //       type: "SESSION_REMINDER",
+        //     },
+        //   });
+        //   break;
+
+        case "MessageSent":
+          // Notify recipient of new message
+          const recipient = event.payload.conversationId ? 
+            (event.payload.recipientId || event.payload.otherParticipant) : 
+            null;
+          
+          if (recipient) {
+            await prisma.notification.create({
+              data: {
+                userId: recipient,
+                message: `New message from ${event.payload.senderName || "a study buddy"}: ${event.payload.content?.substring(0, 50) || "New message"}${event.payload.content?.length > 50 ? "..." : ""}`,
+                type: "MESSAGE_SENT",
+              },
+            });
+          }
+          break;
+
+        case "ConversationCreated":
+          // Notify both participants that conversation started
+          if (event.payload.participant1Id) {
+            await prisma.notification.create({
+              data: {
+                userId: event.payload.participant1Id,
+                message: "A new conversation has started with your study buddy!",
+                type: "CONVERSATION_STARTED",
+              },
+            });
+          }
+          if (event.payload.participant2Id) {
+            await prisma.notification.create({
+              data: {
+                userId: event.payload.participant2Id,
+                message: "A new conversation has started with your study buddy!",
+                type: "CONVERSATION_STARTED",
+              },
+            });
+          }
+          break;
+
+        case "StudySessionCreated":
+          // Notify all invited members about the session invitation
+          console.debug("kafka: StudySessionCreated payload", event.payload);
+          if (event.payload.possibleMemberIds && Array.isArray(event.payload.possibleMemberIds)) {
+            const targets = event.payload.possibleMemberIds.filter((memberId) => memberId !== event.payload.creatorId);
+            try {
+              const created = [];
+              for (const memberId of targets) {
+                try {
+                  const note = await prisma.notification.create({
+                    data: {
+                      userId: memberId,
+                      message: `[SESSION_ID:${event.payload.sessionId}] You've been invited to join a study session: "${event.payload.topic}"`,
+                      type: "SESSION_INVITATION_RECEIVED",
+                    },
+                  });
+                  created.push(note);
+                  console.debug("kafka: created invitation notification", { id: note.id, userId: note.userId });
+                } catch (innerErr) {
+                  console.error("kafka: failed to create invitation notification for member", { memberId, innerErr, payload: event.payload });
+                }
+              }
+              console.log(`✅ Created ${created.length} session invitation notifications (attempted ${targets.length})`);
+            } catch (err) {
+              console.error("kafka: Error creating session invitation notifications:", err, event.payload);
+            }
+          } else {
+            console.warn("kafka: StudySessionCreated has no possibleMemberIds", event.payload);
+          }
+          break;
+
+        case "InvitationResponded":
+          // Notify session creator about invitation response
+          if (event.payload.creatorId) {
+            const statusMessage = {
+              ACCEPTED: "accepted",
+              REJECTED: "declined",
+              PENDING: "pending"
+            }[event.payload.status] || event.payload.status.toLowerCase();
+
+            await prisma.notification.create({
+              data: {
+                userId: event.payload.creatorId,
+                message: `User ${event.payload.userId} ${statusMessage} your invitation${event.payload.topic ? ` for \"${event.payload.topic}\"` : ""}.`,
+                type: "INVITATION_RESPONSE",
+              },
+            });
+          }
+          break;
+
+        case "SessionJoined":
+          // Notify session creator when someone joins their session
+          if (event.payload.creatorId && event.payload.userId) {
+            await prisma.notification.create({
+              data: {
+                userId: event.payload.creatorId,
+                message: `User ${event.payload.userId} requested to join${event.payload.topic ? ` your session \"${event.payload.topic}\"` : " your session"}.`,
+                type: "SESSION_JOINED",
+              },
+            });
+          }
+          break;
+
+        case "SessionCancelled":
+          // Notify all participants (except creator) that the session was cancelled
+          if (Array.isArray(event.payload.participantIds) && event.payload.participantIds.length > 0) {
+            await Promise.all(
+              event.payload.participantIds.map((participantId) =>
+                prisma.notification.create({
+                  data: {
+                    userId: participantId,
+                    message: `A session${event.payload.topic ? ` (\"${event.payload.topic}\")` : ""} was cancelled by the creator.`,
+                    type: "SESSION_CANCELLED",
+                  },
+                })
+              )
+            );
+          }
+          break;
+
+        default:
+          console.log(`⚠️ Unknown event type: ${eventType}`);
       }
     },
   });
 };
 
-module.exports = { kafka, consumer, connectConsumer, disconnectConsumer, runConsumer };
+module.exports = { runConsumer };

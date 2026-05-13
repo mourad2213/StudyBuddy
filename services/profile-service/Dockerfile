@@ -24,7 +24,7 @@ COPY index.js ./
 COPY kafka.js ./
 
 # Expose port
-EXPOSE 4000
+EXPOSE 4006
 
 # Start the service
 CMD ["node", "index.js"]
