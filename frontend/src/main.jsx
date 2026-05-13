@@ -5,7 +5,11 @@ import {
   InMemoryCache,
   ApolloLink,
   HttpLink,
+  split,
 } from "@apollo/client";
+import { GraphQLWsLink } from "@apollo/client/link/subscriptions";
+import { getMainDefinition } from "@apollo/client/utilities";
+import { createClient } from "graphql-ws";
 import { ApolloProvider } from "@apollo/client/react";
 import App from "./App";
 import "./index.css";
@@ -43,6 +47,17 @@ console.log("Messaging:", messagingServiceUrl);
 console.log("Availability:", availabilityServiceUrl);
 
 /* =========================
+   Convert HTTP to WS for subscriptions
+========================= */
+const toWsUrl = (httpUrl) => {
+  if (!httpUrl) return null;
+  return httpUrl
+    .replace(/^https:\/\//, "wss://")
+    .replace(/^http:\/\//, "ws://")
+    .replace(/\/graphql$/, "/graphql");
+};
+
+/* =========================
    HTTP Links
 ========================= */
 const userServiceLink = new HttpLink({ uri: userServiceUrl });
@@ -52,6 +67,22 @@ const notificationServiceLink = new HttpLink({ uri: notificationServiceUrl });
 const matchingServiceLink = new HttpLink({ uri: matchingServiceUrl });
 const messagingServiceLink = new HttpLink({ uri: messagingServiceUrl });
 const availabilityServiceLink = new HttpLink({ uri: availabilityServiceUrl });
+
+/* =========================
+   WebSocket Links for Subscriptions
+========================= */
+const createWsLink = (httpUrl) => {
+  const wsUrl = toWsUrl(httpUrl);
+  return new GraphQLWsLink(
+    createClient({
+      url: wsUrl,
+    })
+  );
+};
+
+const userWsLink = createWsLink(userServiceUrl);
+const notificationWsLink = createWsLink(notificationServiceUrl);
+const messagingWsLink = createWsLink(messagingServiceUrl);
 
 /* =========================
    Operation Names
@@ -78,6 +109,7 @@ const notificationOperations = [
   "MarkAllAsRead",
   "DeleteNotification",
   "UpdateNotificationMessage",
+  "OnNotificationReceived",
 ];
 
 const profileOperations = [
@@ -116,6 +148,7 @@ const messagingOperations = [
   "GetConversations",
   "DeleteMessage",
   "MarkMessageAsRead",
+  "OnMessageReceived",
 ];
 
 const availabilityOperations = [
@@ -139,7 +172,10 @@ const routerLink = new ApolloLink((operation) => {
   }
   if (notificationOperations.includes(operationName)) {
     console.log("→ Notification service");
-    return notificationServiceLink.request(operation);
+    // Use WS for subscriptions, HTTP for queries/mutations
+    const definition = getMainDefinition(operation.query);
+    const link = definition.operation === "subscription" ? notificationWsLink : notificationServiceLink;
+    return link.request(operation);
   }
   if (profileOperations.includes(operationName)) {
     console.log("→ Profile service");
@@ -151,7 +187,10 @@ const routerLink = new ApolloLink((operation) => {
   }
   if (messagingOperations.includes(operationName)) {
     console.log("→ Messaging service");
-    return messagingServiceLink.request(operation);
+    // Use WS for subscriptions, HTTP for queries/mutations
+    const definition = getMainDefinition(operation.query);
+    const link = definition.operation === "subscription" ? messagingWsLink : messagingServiceLink;
+    return link.request(operation);
   }
   if (availabilityOperations.includes(operationName)) {
     console.log("→ Availability service");
@@ -159,7 +198,10 @@ const routerLink = new ApolloLink((operation) => {
   }
 
   console.log("→ User service (default)");
-  return userServiceLink.request(operation);
+  // Use WS for subscriptions, HTTP for queries/mutations
+  const definition = getMainDefinition(operation.query);
+  const link = definition.operation === "subscription" ? userWsLink : userServiceLink;
+  return link.request(operation);
 });
 
 /* =========================
