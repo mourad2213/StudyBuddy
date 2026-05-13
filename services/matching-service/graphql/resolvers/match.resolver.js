@@ -115,8 +115,15 @@ export const resolvers = {
     userId: (parent) => parent.userId,
     candidateId: (parent) => parent.candidateId,
     score: (parent) => parent.score,
-    reasons: (parent) => parent.reasons || [],
-    createdAt: (parent) => parent.createdAt.toISOString(),
+    reasons: (parent) => {
+      if (!parent.reasons) return [];
+      // Prisma Json fields can come back as string or object
+      const parsed = typeof parent.reasons === "string"
+        ? JSON.parse(parent.reasons)
+        : parent.reasons;
+      return Array.isArray(parsed) ? parsed : [];
+    },
+    createdAt: (parent) => new Date(parent.createdAt).toISOString(),
   },
   BuddyRequest: {
     id: (parent) => parent.id,
