@@ -76,6 +76,8 @@ function LoginPage() {
     localStorage.setItem("token", token);
     localStorage.setItem("userId", user.id);
     localStorage.setItem("userName", user.name);
+    localStorage.setItem("username", user.name);
+
     localStorage.setItem("userEmail", user.email);
     localStorage.setItem("user", JSON.stringify({ id: user.id, name: user.name, email: user.email }));
 

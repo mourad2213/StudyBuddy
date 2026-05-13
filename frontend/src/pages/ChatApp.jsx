@@ -241,13 +241,18 @@ export default function ChatApp() {
     try {
       console.log("[ChatApp] Loading conversations for username:", currentUserName);
       const data = await runGraphQL(GET_CONVERSATIONS_QUERY, { userId: currentUserName });
-      console.log("[ChatApp] Conversations loaded:", data);
+      console.log("[ChatApp] Raw response data:", JSON.stringify(data, null, 2));
       
       const loaded = Array.isArray(data?.getConversations)
         ? data.getConversations
         : [];
 
       console.log("[ChatApp] Setting conversations, count:", loaded.length);
+      loaded.forEach((conv, idx) => {
+        const otherUserId = conv.participant1Id === currentUserName ? conv.participant2Id : conv.participant1Id;
+        console.log(`  [${idx}] conversation id: ${conv.id}, with user: ${otherUserId}`);
+      });
+      
       setConversations(loaded);
       setActiveConversationId((prev) => {
         if (prev && loaded.some((conv) => conv.id === prev)) return prev;
@@ -530,7 +535,7 @@ export default function ChatApp() {
             </div>
           </div>
           <div className="chat-header-right">
-            <span className="active-status">Active 5 min ago</span>
+            <span className="active-status">Active </span>
            
           </div>
         </header>

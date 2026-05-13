@@ -205,6 +205,11 @@ export default function CreateSession() {
       return;
     }
 
+    if (formData.selectedBuddies.length === 0) {
+      alert("Please select at least one buddy to study with");
+      return;
+    }
+
     try {
       const [year, month, day] = formData.date.split("-").map(Number);
       const [hours, minutes] = formData.time.split(":").map(Number);
@@ -316,7 +321,9 @@ export default function CreateSession() {
               {/* Room */}
               {formData.sessionType === "In-person" && (
                 <div className="field">
-                  <label>Room</label>
+                  <label>
+                   Room <span>*</span>
+                  </label> 
 
                   <input
                     type="text"

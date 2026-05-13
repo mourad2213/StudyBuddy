@@ -79,9 +79,22 @@ export const messageResolvers = {
   Query: {
     async getConversations(_, { userId }) {
       try {
+        console.log(`[getConversations] Query received for userId: "${userId}"`);
+        
+        // First, let's see ALL conversations in the database
+        const allConversations = await prisma.conversation.findMany();
+        console.log(`[getConversations] Total conversations in database: ${allConversations.length}`);
+        allConversations.forEach((conv) => {
+          console.log(`  [DB] id: ${conv.id} | p1: "${conv.participant1Id}" | p2: "${conv.participant2Id}"`);
+        });
+        
+        // Now query for the specific user - check BOTH participant1Id AND participant2Id
         const conversations = await prisma.conversation.findMany({
           where: {
-            OR: [{ participant1Id: userId }, { participant2Id: userId }],
+            OR: [
+              { participant1Id: userId },
+              { participant2Id: userId }
+            ],
           },
           include: {
             messages: {
@@ -90,6 +103,12 @@ export const messageResolvers = {
             },
           },
           orderBy: { updatedAt: "desc" },
+        });
+
+        console.log(`[getConversations] Query filter: OR[participant1Id="${userId}", participant2Id="${userId}"]`);
+        console.log(`[getConversations] Found ${conversations.length} conversations for userId "${userId}"`);
+        conversations.forEach((conv, idx) => {
+          console.log(`  [${idx}] id: ${conv.id} | p1: "${conv.participant1Id}" | p2: "${conv.participant2Id}" | lastMsg: ${conv.messages.length > 0 ? conv.messages[0].content : 'none'}`);
         });
 
         return conversations.map((conv) => ({

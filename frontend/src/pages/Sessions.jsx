@@ -1,4 +1,5 @@
 import { useQuery } from "@apollo/client/react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Clock3,
@@ -63,7 +64,86 @@ const SliderControls = () => (
     <ChevronRight size={18} />
   </div>
 );
+const SessionsColumn = ({ title, sessions, loading, error, emptyMessage }) => {
+  const [page, setPage] = useState(0);
 
+  const sessionsPerPage = 4;
+  const totalPages = Math.ceil(sessions.length / sessionsPerPage);
+
+  const startIndex = page * sessionsPerPage;
+  const currentSessions = sessions.slice(
+    startIndex,
+    startIndex + sessionsPerPage
+  );
+
+  const handlePrev = () => {
+    if (page > 0) {
+      setPage(page - 1);
+    }
+  };
+
+  const handleNext = () => {
+    if (page < totalPages - 1) {
+      setPage(page + 1);
+    }
+  };
+
+  return (
+    <div className="sessions-section">
+      <h2 className="section-title">{title}</h2>
+
+      {error ? (
+        <p className="error-message">
+          Error loading sessions: {error.message}
+        </p>
+      ) : loading ? (
+        <p>Loading sessions...</p>
+      ) : sessions.length === 0 ? (
+        <p>{emptyMessage}</p>
+      ) : (
+        <>
+          <div className="sessions-grid">
+            {currentSessions.map((session) => (
+              <SessionCard key={session.id} session={session} />
+            ))}
+          </div>
+
+          {totalPages > 1 && (
+            <div className="slider-controls">
+              <ChevronLeft
+                size={18}
+                onClick={handlePrev}
+                style={{
+                  opacity: page === 0 ? 0.4 : 1,
+                  cursor: page === 0 ? "default" : "pointer",
+                }}
+              />
+
+              <div className="slider-dots">
+                {[...Array(totalPages)].map((_, index) => (
+                  <span
+                    key={index}
+                    className={`dot ${index === page ? "active" : ""}`}
+                  ></span>
+                ))}
+              </div>
+
+              <ChevronRight
+                size={18}
+                onClick={handleNext}
+                style={{
+                  opacity: page === totalPages - 1 ? 0.4 : 1,
+                  cursor:
+                    page === totalPages - 1 ? "default" : "pointer",
+                }}
+              />
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
 export default function Sessions() {
   // Resolve username the same way as CreateSession.jsx
   const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
@@ -141,60 +221,37 @@ export default function Sessions() {
   const pastSessions = pastData?.pastSessions?.map(transformSessionData) || [];
 
   return (
-    <div className="sessions-container">
-      <div className="sessions-header">
-        <h1 className="sessions-title">
-          <span className="sessions-icon">
-            <Clock3 size={22} />
-          </span>
-          Sessions
-        </h1>
-      </div>
-
-      <div className="sessions-content">
-        {/* Upcoming */}
-        <div className="sessions-section">
-          <h2 className="section-title">Upcoming Sessions</h2>
-
-          {upcomingError ? (
-            <p className="error-message">Error loading sessions: {upcomingError.message}</p>
-          ) : upcomingLoading ? (
-            <p>Loading upcoming sessions...</p>
-          ) : upcomingSessions.length === 0 ? (
-            <p>No upcoming sessions. <Link to="/create-session">Create one</Link></p>
-          ) : (
-            <>
-              <div className="sessions-grid">
-                {upcomingSessions.map((session) => (
-                  <SessionCard key={session.id} session={session} />
-                ))}
+            <div className="sessions-container">
+              <div className="sessions-header">
+                <h1 className="sessions-title">
+                  <span className="sessions-icon">
+                    <Clock3 size={22} />
+                  </span>
+                  Sessions
+                </h1>
               </div>
-              <SliderControls />
-            </>
-          )}
-        </div>
 
-        {/* Past */}
-        <div className="sessions-section">
-          <h2 className="section-title">Past Sessions</h2>
-
-          {pastError ? (
-            <p className="error-message">Error loading sessions: {pastError.message}</p>
-          ) : pastLoading ? (
-            <p>Loading past sessions...</p>
-          ) : pastSessions.length === 0 ? (
-            <p>No past sessions.</p>
-          ) : (
+              <div className="sessions-content">
+        <SessionsColumn
+          title="Upcoming Sessions"
+          sessions={upcomingSessions}
+          loading={upcomingLoading}
+          error={upcomingError}
+          emptyMessage={
             <>
-              <div className="sessions-grid">
-                {pastSessions.map((session) => (
-                  <SessionCard key={session.id} session={session} />
-                ))}
-              </div>
-              <SliderControls />
+              No upcoming sessions.{" "}
+              <Link to="/create-session">Create one</Link>
             </>
-          )}
-        </div>
+          }
+        />
+
+        <SessionsColumn
+          title="Past Sessions"
+          sessions={pastSessions}
+          loading={pastLoading}
+          error={pastError}
+          emptyMessage="No past sessions."
+        />
 
         <div className="sessions-actions">
           <Link to="/create-session" className="create-session-btn">

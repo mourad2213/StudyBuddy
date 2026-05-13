@@ -4,20 +4,28 @@ import { useQuery, useMutation } from "@apollo/client/react";
 import NotificationItem from "../components/notifications/NotificationItem";
 
 import { GET_NOTIFICATIONS } from "../graphql/queries/notifications";
+import { GET_PENDING_INVITATIONS } from "../graphql/queries/sessions";
 import {
   MARK_AS_READ,
   MARK_ALL_AS_READ,
   DELETE_NOTIFICATION,
+  UPDATE_NOTIFICATION_MESSAGE,
 } from "../graphql/mutations/notifications";
+import { RESPOND_TO_SESSION_INVITATION } from "../graphql/mutations/sessions";
 
 import notificationArrow from "../assets/notification-arrow.png";
-
+import "../App.css";
 export default function NotificationsPage() {
-  const currentUserId = localStorage.getItem("userId");
+  const currentUserId = localStorage.getItem("username");
 
   const [searchTerm, setSearchTerm] = useState("");
 
-  const { data, loading, error, refetch } = useQuery(GET_NOTIFICATIONS, {
+  const {
+    data,
+    loading,
+    error,
+    refetch,
+  } = useQuery(GET_NOTIFICATIONS, {
     variables: { userId: currentUserId },
     skip: !currentUserId,
     fetchPolicy: "cache-and-network",
@@ -26,6 +34,19 @@ export default function NotificationsPage() {
       uri: "http://localhost:4005/graphql",
     },
   });
+
+  const { data: pendingData, refetch: refetchPendingInvitations } = useQuery(
+    GET_PENDING_INVITATIONS,
+    {
+      variables: { userId: currentUserId },
+      skip: !currentUserId,
+      fetchPolicy: "cache-and-network",
+      pollInterval: 30000,
+      context: {
+        uri: "http://localhost:4007/graphql",
+      },
+    }
+  );
 
   const [markAsRead] = useMutation(MARK_AS_READ, {
     context: {
@@ -48,7 +69,41 @@ export default function NotificationsPage() {
     },
   });
 
-  const notifications = data?.getNotifications || [];
+  const [updateNotificationMessage] = useMutation(UPDATE_NOTIFICATION_MESSAGE, {
+    context: {
+      uri: "http://localhost:4005/graphql",
+    },
+  });
+
+  const [respondToInvitation] = useMutation(RESPOND_TO_SESSION_INVITATION, {
+    context: {
+      uri: "http://localhost:4007/graphql",
+    },
+  });
+
+  const notifications = useMemo(() => {
+    const pendingSessions = pendingData?.getPendingInvitations || [];
+
+    return (data?.getNotifications || []).map((notification) => {
+      if (notification.type !== "SESSION_INVITATION_RECEIVED") {
+        return notification;
+      }
+
+      const normalizedMessage = notification.message.toLowerCase();
+      const matchingPendingSessions = pendingSessions.filter((session) => {
+        return session.topic && normalizedMessage.includes(session.topic.toLowerCase());
+      });
+
+      return {
+        ...notification,
+        topic: matchingPendingSessions[0]?.topic,
+        pendingSessions:
+          matchingPendingSessions.length > 0
+            ? matchingPendingSessions
+            : pendingSessions,
+      };
+    });
+  }, [data?.getNotifications, pendingData?.getPendingInvitations]);
 
   const filteredNotifications = useMemo(() => {
     return notifications
@@ -99,6 +154,67 @@ export default function NotificationsPage() {
       await refetch();
     } catch (err) {
       alert(err.message || "Failed to delete notification.");
+    }
+  };
+
+  const handleRespondToInvitation = async ({
+    sessionId,
+    status,
+    notificationId,
+    notificationMessage,
+  }) => {
+    console.debug("NotificationsPage: respondToInvitation called", {
+      sessionId,
+      status,
+      notificationId,
+      userId: currentUserId,
+    });
+
+    try {
+      const result = await respondToInvitation({
+        variables: {
+          sessionId,
+          userId: currentUserId,
+          status,
+        },
+      });
+
+      console.debug("NotificationsPage: respondToInvitation result", { result });
+
+      const baseMessage = (notificationMessage || "")
+        .replace(/\[SESSION_ID:[^\]]+\]\s*/g, "")
+        .replace(/\s*\[INVITATION_RESPONSE:(ACCEPTED|REJECTED)\]\s*/g, " ")
+        .trim();
+
+      try {
+        await updateNotificationMessage({
+          variables: {
+            notificationId,
+            message: `[SESSION_ID:${sessionId}] ${baseMessage} [INVITATION_RESPONSE:${status}]`,
+          },
+        });
+      } catch (notificationUpdateError) {
+        console.warn("Failed to update notification response label", {
+          error: notificationUpdateError,
+          notificationId,
+          sessionId,
+          status,
+        });
+      }
+
+      alert(`Session invitation ${status.toLowerCase()}!`);
+
+      await refetch();
+      await refetchPendingInvitations();
+    } catch (err) {
+      console.error("NotificationsPage: respondToInvitation error", {
+        error: err,
+        sessionId,
+        status,
+        notificationId,
+      });
+      alert(err.message || "Failed to respond to session invitation. See console for details.");
+      throw err;
     }
   };
 
@@ -170,19 +286,21 @@ export default function NotificationsPage() {
           <p className="notifications-empty">You're all caught up! ✓</p>
         ) : (
           <>
-            {unreadNotifications.length > 0 && (
-              <>
-                <h3 className="notifications-section-title">New!</h3>
+            <h3 className="notifications-section-title">New!</h3>
 
-                {unreadNotifications.map((notification) => (
-                  <NotificationItem
-                    key={notification.id}
-                    notification={notification}
-                    onMarkAsRead={handleMarkAsRead}
-                    onDelete={handleDelete}
-                  />
-                ))}
-              </>
+            {unreadNotifications.length === 0 ? (
+              <p className="no-read-notifications">No new notifications.</p>
+            ) : (
+              unreadNotifications.map((notification) => (
+                <NotificationItem
+                  key={notification.id}
+                  notification={notification}
+                  currentUserId={currentUserId}
+                  onMarkAsRead={handleMarkAsRead}
+                  onDelete={handleDelete}
+                  onRespondToInvitation={handleRespondToInvitation}
+                />
+              ))
             )}
 
             <h3 className="notifications-section-title">Read:</h3>
@@ -194,8 +312,10 @@ export default function NotificationsPage() {
                 <NotificationItem
                   key={notification.id}
                   notification={notification}
+                  currentUserId={currentUserId}
                   onMarkAsRead={handleMarkAsRead}
                   onDelete={handleDelete}
+                  onRespondToInvitation={handleRespondToInvitation}
                 />
               ))
             )}
