@@ -64,7 +64,7 @@ export default function Dashboard() {
 
   const currentUserId = getCurrentUserId();
   const currentUserName = getCurrentUserName();
-  const sessionUserId = getCurrentUserName();  // used for sessions query
+  const sessionUserId = currentUserId;  // used for sessions query
   const navigate = useNavigate();              // ← now correctly inside the component
   const token = localStorage.getItem("token");
 
@@ -130,6 +130,7 @@ export default function Dashboard() {
   const recommendedLoading = recommendationsLoading || usersLoading || profilesLoading;
   const recommendedError = recommendationsError || usersError || profilesError;
   const notifications = notificationsData?.getNotifications || [];
+  const userNameById = new Map((usersData?.getAllUsers || []).map((user) => [user.id, user.name]));
 
 
   const upcomingSessions = (upcomingData?.upcomingSessions || []).map((session) => {
@@ -137,13 +138,16 @@ export default function Dashboard() {
       session.participants?.filter((p) => p.inviteStatus === "ACCEPTED") || [];
     const peer = acceptedParticipants.find((p) => p.userId !== session.creatorId);
     const dateTime = formatDateTime(session.dateTime);
+    const peerName = peer
+      ? userNameById.get(peer.userId) || peer.userId
+      : "You";
     return {
       id: session.id,
       topic: session.topic,
       duration: session.durationMins,
       location: session.location || (session.sessionType === "ONLINE" ? "Online" : "TBD"),
       isOnline: session.sessionType === "ONLINE",
-      peerName: peer?.userId || "You",
+      peerName,
       date: dateTime.date,
       time: dateTime.time,
     };

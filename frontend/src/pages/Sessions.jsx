@@ -11,9 +11,9 @@ import {
   User,
 } from "lucide-react";
 import { GET_UPCOMING_SESSIONS, GET_PAST_SESSIONS } from "../graphql/queries";
+import { GET_ALL_USERS } from "../graphql/queries/user";
 
 import "./Sessions.css";
-
 const SessionCard = ({ session }) => {
   return (
     <div className="session-card">
@@ -145,44 +145,22 @@ const SessionsColumn = ({ title, sessions, loading, error, emptyMessage }) => {
   );
 };
 export default function Sessions() {
-  // Resolve username the same way as CreateSession.jsx
   const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
-  let currentUserName = "Me";
+  const currentUserId = localStorage.getItem("userId") || storedUser.id || storedUser.userId || storedUser.uuid || "";
 
-  const directUsername = localStorage.getItem("username");
-  if (directUsername) {
-    currentUserName = directUsername;
-  } else {
-    currentUserName =
-      storedUser.loginUsername ||
-      storedUser.actual_username ||
-      storedUser.username ||
-      storedUser.name ||
-      "Me";
-  }
-
-  if (currentUserName === "Me") {
-    const systemKeys = new Set(["token", "userId", "user", "cart", "favoriteColor"]);
-    const userIdUuid = localStorage.getItem("userId") || "";
-    const possibleUsernameKey = Object.keys(localStorage).find(
-      (key) => !systemKeys.has(key) && key !== userIdUuid && !key.match(/^[0-9a-f\-]{36}$/)
-    );
-
-    if (possibleUsernameKey) {
-      currentUserName = possibleUsernameKey;
-    }
-  }
-
-  const userName = currentUserName === "Me" ? "" : currentUserName;
+  const { data: usersData } = useQuery(GET_ALL_USERS, {
+    fetchPolicy: "cache-and-network",
+    context: { uri: "http://localhost:4001/graphql" },
+  });
 
   const { data: upcomingData, loading: upcomingLoading, error: upcomingError } = useQuery(
     GET_UPCOMING_SESSIONS,
-    { variables: { userId: userName }, fetchPolicy: "cache-and-network" }
+    { variables: { userId: currentUserId }, skip: !currentUserId, fetchPolicy: "cache-and-network" }
   );
 
   const { data: pastData, loading: pastLoading, error: pastError } = useQuery(
     GET_PAST_SESSIONS,
-    { variables: { userId: userName }, fetchPolicy: "cache-and-network" }
+    { variables: { userId: currentUserId }, skip: !currentUserId, fetchPolicy: "cache-and-network" }
   );
 
   const formatDateTime = (dateTimeString) => {
@@ -203,6 +181,10 @@ export default function Sessions() {
   const transformSessionData = (session) => {
     const acceptedMembers = session.participants?.filter(p => p.inviteStatus === "ACCEPTED") || [];
     const firstMember = acceptedMembers.find(p => p.userId !== session.creatorId);
+    const userNameById = new Map((usersData?.getAllUsers || []).map((user) => [user.id, user.name]));
+    const memberName = firstMember
+      ? userNameById.get(firstMember.userId) || firstMember.userId
+      : "You";
 
     return {
       id: session.id,
@@ -210,7 +192,7 @@ export default function Sessions() {
       duration: session.durationMins,
       isOnline: session.sessionType === "ONLINE",
       location: session.location || "Online",
-      name: firstMember ? firstMember.userId : "You",
+      name: memberName,
       ...formatDateTime(session.dateTime),
     };
   };
