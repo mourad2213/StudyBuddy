@@ -41,14 +41,7 @@ const kafka = new Kafka({
   brokers,
 
   logLevel: logLevel.INFO,
-
-  // ✅ ALWAYS use SSL for Aiven
-  ssl: {
-    ca: [process.env.KAFKA_CA_CERT?.replace(/\\n/g, '\n')],
-    rejectUnauthorized: true,
-  },
-
-  // ✅ ALWAYS use SASL plain for Aiven
+  ssl: true,
   sasl: {
     mechanism: "plain",
     username,
