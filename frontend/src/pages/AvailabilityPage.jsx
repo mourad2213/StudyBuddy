@@ -17,7 +17,7 @@ const DAYS = [
   { value: 3, label: "Thursday" },
   { value: 4, label: "Friday" },
 ];
-const AVAILABILITY_GRAPHQL = "http://localhost:4002/graphql";
+const AVAILABILITY_GRAPHQL = import.meta.env.VITE_AVAILABILITY_URL || "http://localhost:4004/graphql";
 // function addOneHour(time) {
 //   const [hours, minutes] = time.split(":").map(Number);
 //   const newHours = (hours + 1).toString().padStart(2, "0");

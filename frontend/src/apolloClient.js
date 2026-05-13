@@ -24,7 +24,7 @@ const authLink = new ApolloLink((operation, forward) => {
 });
 
 const dynamicHttpLink = new ApolloLink((operation) => {
-  const uri = operation.getContext().uri || "http://localhost:4001/graphql";
+  const uri = operation.getContext().uri || import.meta.env.VITE_USER_URL || "http://localhost:4001/graphql";
   const httpLink = new HttpLink({ uri });
   return httpLink.request(operation);
 });

@@ -40,10 +40,10 @@ export default function CreateSession() {
   const userId =
     localStorage.getItem("userId") || storedUser.id || storedUser.userId || storedUser.uuid || "";
   const matchingServiceUrl =
-    import.meta.env.VITE_MATCHING_SERVICE_URL ||
+    import.meta.env.VITE_MATCHING_URL ||
     "http://localhost:4003/graphql";
   const userServiceUrl =
-    import.meta.env.VITE_USER_SERVICE_URL ||
+    import.meta.env.VITE_USER_URL ||
     "http://localhost:4001/graphql";
 
   const [formData, setFormData] = useState({

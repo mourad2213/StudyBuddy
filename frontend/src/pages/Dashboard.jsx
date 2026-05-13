@@ -77,7 +77,7 @@ export default function Dashboard() {
     skip: !currentUserId,
     fetchPolicy: "cache-and-network",
     context: {
-      uri: "http://localhost:4003/",
+      uri: import.meta.env.VITE_MATCHING_URL || "http://localhost:4003/graphql",
       headers: {
         authorization: token ? `Bearer ${token}` : "",
         Authorization: token ? `Bearer ${token}` : "",
@@ -99,30 +99,30 @@ export default function Dashboard() {
 
   const { data: usersData, loading: usersLoading, error: usersError } = useQuery(GET_ALL_USERS, {
     fetchPolicy: "cache-and-network",
-    context: { uri: "http://localhost:4001/graphql" },
+    context: { uri: import.meta.env.VITE_USER_URL || "http://localhost:4001/graphql" },
   });
 
   const { data: profilesData, loading: profilesLoading, error: profilesError } = useQuery(GET_ALL_PROFILES, {
     fetchPolicy: "cache-and-network",
-    context: { uri: "http://localhost:4006/graphql" },
+    context: { uri: import.meta.env.VITE_PROFILE_URL || "http://localhost:4006/graphql" },
   });
 
   const { data: upcomingData, loading: upcomingLoading, error: upcomingError } = useQuery(GET_UPCOMING_SESSIONS, {
     skip: !sessionUserId,
     variables: { userId: sessionUserId },
     fetchPolicy: "cache-and-network",
-    context: { uri: "http://localhost:4007/graphql" },
+    context: { uri: import.meta.env.VITE_SESSION_URL || "http://localhost:4007/graphql" },
   });
 
   const { data: notificationsData, loading: notificationsLoading } = useQuery(GET_NOTIFICATIONS, {
     skip: !currentUserId,
     variables: { userId: currentUserId },
     fetchPolicy: "cache-and-network",
-    context: { uri: "http://localhost:4005/graphql" },
+    context: { uri: import.meta.env.VITE_NOTIFICATION_URL || "http://localhost:4005/graphql" },
   });
 
   const [createBuddyRequest] = useMutation(CREATE_BUDDY_REQUEST, {
-    context: { uri: "http://localhost:4003/graphql" },
+    context: { uri: import.meta.env.VITE_MATCHING_URL || "http://localhost:4003/graphql" },
   });
 
   

@@ -132,7 +132,7 @@ export default function NotificationItem({
   ] = useLazyQuery(GET_SESSION_BY_ID, {
     fetchPolicy: "network-only",
     context: {
-      uri: "http://localhost:4007/graphql",
+      uri: import.meta.env.VITE_SESSION_URL || "http://localhost:4007/graphql",
     },
   });
   const [
@@ -141,7 +141,7 @@ export default function NotificationItem({
   ] = useLazyQuery(GET_PENDING_INVITATIONS, {
     fetchPolicy: "network-only",
     context: {
-      uri: "http://localhost:4007/graphql",
+      uri: import.meta.env.VITE_SESSION_URL || "http://localhost:4007/graphql",
     },
   });
   const [
@@ -150,19 +150,19 @@ export default function NotificationItem({
   ] = useLazyQuery(GET_SESSION_ACCEPTED_MEMBERS, {
     fetchPolicy: "network-only",
     context: {
-      uri: "http://localhost:4007/graphql",
+      uri: import.meta.env.VITE_SESSION_URL || "http://localhost:4007/graphql",
     },
   });
   const [loadUpcomingSessions] = useLazyQuery(GET_UPCOMING_SESSIONS, {
     fetchPolicy: "network-only",
     context: {
-      uri: "http://localhost:4007/graphql",
+      uri: import.meta.env.VITE_SESSION_URL || "http://localhost:4007/graphql",
     },
   });
   const [loadPastSessions] = useLazyQuery(GET_PAST_SESSIONS, {
     fetchPolicy: "network-only",
     context: {
-      uri: "http://localhost:4007/graphql",
+      uri: import.meta.env.VITE_SESSION_URL || "http://localhost:4007/graphql",
     },
   });
 

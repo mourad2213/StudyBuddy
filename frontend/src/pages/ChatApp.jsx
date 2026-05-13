@@ -2,11 +2,11 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import "./ChatApp.css";
 
 const messagingServiceUrl =
-  import.meta.env.VITE_MESSAGING_SERVICE_URL || "http://localhost:4008/graphql";
+  import.meta.env.VITE_MESSAGING_URL || "http://localhost:4008/graphql";
 const matchingServiceUrl =
-  import.meta.env.VITE_MATCHING_SERVICE_URL || "http://localhost:4003/graphql";
+  import.meta.env.VITE_MATCHING_URL || "http://localhost:4003/graphql";
 const userServiceUrl =
-  import.meta.env.VITE_USER_SERVICE_URL || "http://localhost:4001/graphql";
+  import.meta.env.VITE_USER_URL || "http://localhost:4001/graphql";
 
 const GET_CONVERSATIONS_QUERY = `
   query GetConversations($userId: String!) {

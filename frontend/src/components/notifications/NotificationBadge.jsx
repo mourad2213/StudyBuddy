@@ -7,7 +7,7 @@ export default function NotificationBadge({ userId }) {
     skip: !userId,
     pollInterval: 30000,
     context: {
-      uri: "http://localhost:4005/graphql",
+      uri: import.meta.env.VITE_NOTIFICATION_URL || "http://localhost:4005/graphql",
     },
   });
 

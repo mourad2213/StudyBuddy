@@ -7,9 +7,9 @@ import { CREATE_CONVERSATION } from "../graphql/mutations";
 import { CREATE_BUDDY_REQUEST } from "../graphql/queries/buddyRequests";
 import "./MatchDetailsPage.css";
 
-const PROFILE_GRAPHQL = "http://localhost:4006/graphql";
-const MATCHING_GRAPHQL = "http://localhost:4003/graphql";
-const MESSAGING_GRAPHQL = "http://localhost:4008/graphql";
+const PROFILE_GRAPHQL = import.meta.env.VITE_PROFILE_URL || "http://localhost:4006/graphql";
+const MATCHING_GRAPHQL = import.meta.env.VITE_MATCHING_URL || "http://localhost:4003/graphql";
+const MESSAGING_GRAPHQL = import.meta.env.VITE_MESSAGING_URL || "http://localhost:4008/graphql";
 const AVATAR_POOL = [
   "/avatar-fadi.svg",
   "/avatar-sofyan.svg",
