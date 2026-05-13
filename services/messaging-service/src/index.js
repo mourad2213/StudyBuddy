@@ -20,7 +20,7 @@ import { setupWebSocket, sendToUser } from "./websocket.js";
 
 const prisma = new PrismaClient();
 const app = express();
-const PORT = process.env.PORT || 4004;
+const PORT = process.env.PORT || 4008;
 
 // Middleware
 app.use(cors());
