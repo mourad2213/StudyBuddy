@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";  // ← merge into one import
 import { useQuery, useMutation } from "@apollo/client/react";
 import { Bell, CalendarDays, MessageSquare, Users, Plus, Mail, MapPin, Monitor } from "lucide-react";
 import BuddyCard from "../components/BuddyCard";
@@ -8,6 +8,7 @@ import { GET_ALL_PROFILES, GET_PROFILE } from "../graphql/queries/profiles";
 import { GET_UPCOMING_SESSIONS } from "../graphql/queries";
 import { GET_NOTIFICATIONS } from "../graphql/queries/notifications";
 import { CREATE_BUDDY_REQUEST } from "../graphql/queries/buddyRequests";
+import { GET_RECOMMENDATIONS } from "../graphql/queries/matching";
 import "./Dashboard.css";
 
 const AVATAR_POOL = [
@@ -20,6 +21,7 @@ function getCurrentUserId() {
   const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
   return localStorage.getItem("userId") || storedUser?.id || "";
 }
+
 
 function getCurrentUserName() {
   const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
@@ -42,7 +44,12 @@ function formatDateTime(dateTimeString) {
 }
 
 function getRelativeTime(createdAt) {
-  const diff = Date.now() - new Date(createdAt).getTime();
+  if (!createdAt) return "just now";
+  
+  const date = new Date(Number(createdAt));  // ← Number() converts the string to ms timestamp
+  if (isNaN(date.getTime())) return "just now";
+
+  const diff = Date.now() - date.getTime();
   const minutes = Math.floor(diff / 60000);
   if (minutes < 1) return "just now";
   if (minutes < 60) return `${minutes} min ago`;
@@ -52,41 +59,43 @@ function getRelativeTime(createdAt) {
   return `${days} day${days > 1 ? "s" : ""} ago`;
 }
 
-function scoreMatch(currentProfile, candidate) {
-  if (!currentProfile || !candidate) return 0;
-  const currentCourses = new Set(
-    currentProfile.courses?.map((course) => course.name) || [],
-  );
-  const candidateCourses =
-    candidate.courses?.map((course) => course.name) || [];
-  const sharedCourses = candidateCourses.filter((name) =>
-    currentCourses.has(name),
-  ).length;
-  let score = 0;
-  if (currentProfile.major && currentProfile.major === candidate.major) score += 30;
-  if (currentProfile.academicYear && currentProfile.academicYear === candidate.academicYear) score += 18;
-  if (currentProfile.preferences?.style && currentProfile.preferences?.style === candidate.preferences?.style) score += 12;
-  score += sharedCourses * 8;
-  return score;
-}
 
 export default function Dashboard() {
+
   const currentUserId = getCurrentUserId();
-
-  function getCurrentUserName() {
-    const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
-    return storedUser?.name || storedUser?.username || "";
-  }
-  
-  const sessionUserId = getCurrentUserName();
-
   const currentUserName = getCurrentUserName();
+  const sessionUserId = getCurrentUserName();  // used for sessions query
+  const navigate = useNavigate();              // ← now correctly inside the component
+  const token = localStorage.getItem("token");
 
-  const { data: profileData, loading: profileLoading, error: profileError } = useQuery(GET_PROFILE, {
+  const {
+    data: recommendationsData,
+    loading: recommendationsLoading,
+    error: recommendationsError,
+  } = useQuery(GET_RECOMMENDATIONS, {          // ← also correctly inside the component
+    variables: { userId: currentUserId, limit: 3 },
     skip: !currentUserId,
-    variables: { userId: currentUserId },
     fetchPolicy: "cache-and-network",
+    context: {
+      uri: "http://localhost:4003/",
+      headers: {
+        authorization: token ? `Bearer ${token}` : "",
+        Authorization: token ? `Bearer ${token}` : "",
+      },
+    },
   });
+
+  // function getCurrentUserName() {
+  //   const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+  //   return storedUser?.name || storedUser?.username || "";
+  // }
+  
+
+  // const { data: profileData, loading: profileLoading, error: profileError } = useQuery(GET_PROFILE, {
+  //   skip: !currentUserId,
+  //   variables: { userId: currentUserId },
+  //   fetchPolicy: "cache-and-network",
+  // });
 
   const { data: usersData, loading: usersLoading, error: usersError } = useQuery(GET_ALL_USERS, {
     fetchPolicy: "cache-and-network",
@@ -116,10 +125,12 @@ export default function Dashboard() {
     context: { uri: "http://localhost:4003/graphql" },
   });
 
-  const currentProfile = profileData?.getProfile;
-  const recommendedLoading = profileLoading || usersLoading || profilesLoading;
-  const recommendedError = profileError || usersError || profilesError;
+  
+  //const currentProfile = profileData?.getProfile;
+  const recommendedLoading = recommendationsLoading || usersLoading || profilesLoading;
+  const recommendedError = recommendationsError || usersError || profilesError;
   const notifications = notificationsData?.getNotifications || [];
+
 
   const upcomingSessions = (upcomingData?.upcomingSessions || []).map((session) => {
     const acceptedParticipants =
@@ -138,29 +149,33 @@ export default function Dashboard() {
     };
   });
 
+  const recommendations = recommendationsData?.getRecommendations || [];
+
   const recommendedBuddies = useMemo(() => {
-    if (!currentProfile || !usersData?.getAllUsers || !profilesData?.getAllProfiles) return [];
-    const usersById = new Map(usersData.getAllUsers.map((user) => [user.id, user]));
-    return profilesData.getAllProfiles
-      .filter((profile) => profile.userId !== currentUserId && usersById.has(profile.userId))
-      .map((profile, index) => {
-        const user = usersById.get(profile.userId);
-        return {
-          score: scoreMatch(currentProfile, profile),
-          id: profile.id || profile.userId,
-          userId: profile.userId,
-          name: user?.name || user?.username || "Study Buddy",
-          major: profile.major || "Unknown",
-          year: profile.academicYear || "N/A",
-          studyStyle: profile.preferences?.style || "Flexible",
-          courses: profile.courses?.map((course) => course.name) || [],
-          avatarSrc: AVATAR_POOL[index % AVATAR_POOL.length],
-          avatarAlt: `${user?.name || "Study Buddy"} avatar`,
-        };
-      })
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 3);
-  }, [currentProfile, usersData, profilesData, currentUserId]);
+    if (!usersData?.getAllUsers || !profilesData?.getAllProfiles) return [];
+
+    return recommendations.map((rec, index) => {
+      const profile = profilesData.getAllProfiles.find(
+        (p) => p.userId === rec.candidateId
+      );
+      const user = usersData.getAllUsers.find(
+        (u) => u.id === rec.candidateId
+      );
+
+      return {
+        score: rec.score,
+        id: rec.candidateId,
+        userId: rec.candidateId,
+        name: user?.name || "Study Buddy",
+        major: profile?.major || "Unknown",
+        year: profile?.academicYear || "N/A",
+        studyStyle: profile?.preferences?.style || "Flexible",
+        courses: profile?.courses?.map((c) => c.name) || [],
+        avatarSrc: AVATAR_POOL[index % AVATAR_POOL.length],
+        avatarAlt: `${user?.name || "Study Buddy"} avatar`,
+      };
+    }).slice(0, 3);
+  }, [recommendations, usersData, profilesData]);
 
   const notificationsSorted = [...notifications].sort(
     (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
@@ -173,7 +188,11 @@ export default function Dashboard() {
     if (!currentUserId) return;
     createBuddyRequest({
       variables: { fromUserId: currentUserId, toUserId: buddy.userId },
-    }).catch(console.error);
+    })
+      .then(() => {
+        navigate(`/match/${buddy.userId}`);
+      })
+      .catch(console.error);
   };
 
   if (!currentUserId) {
