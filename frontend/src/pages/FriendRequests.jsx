@@ -11,8 +11,8 @@ import { GET_ALL_USERS } from "../graphql/queries/user";
 import { GET_ALL_PROFILES } from "../graphql/queries/profiles";
 import "./FriendRequests.css";
 
-const MATCHING_GRAPHQL = "http://localhost:4003/graphql";
-const PROFILE_GRAPHQL = "http://localhost:4006/graphql";
+const MATCHING_GRAPHQL = import.meta.env.VITE_MATCHING_URL || "http://localhost:4003/graphql";
+const PROFILE_GRAPHQL = import.meta.env.VITE_PROFILE_URL || "http://localhost:4006/graphql";
 
 const TABS = [
   { id: "requests", label: "Requests" },

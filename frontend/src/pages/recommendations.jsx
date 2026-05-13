@@ -8,9 +8,9 @@ import { CREATE_BUDDY_REQUEST } from "../graphql/mutations/matching";
 import { GET_ALL_PROFILES } from "../graphql/queries/profiles";
 import { GET_ALL_USERS } from "../graphql/queries/user";
 
-const MATCHING_GRAPHQL = "http://localhost:4003/";
-const PROFILE_GRAPHQL = "http://localhost:4006/graphql";
-const USER_GRAPHQL = "http://localhost:4001/graphql";
+const MATCHING_GRAPHQL = import.meta.env.VITE_MATCHING_URL || "http://localhost:4003/graphql";
+const PROFILE_GRAPHQL = import.meta.env.VITE_PROFILE_URL || "http://localhost:4006/graphql";
+const USER_GRAPHQL = import.meta.env.VITE_USER_URL || "http://localhost:4001/graphql";
 
 const fallbackAvatars = [
   "/avatar-tala.svg",

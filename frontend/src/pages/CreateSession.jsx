@@ -79,7 +79,7 @@ export default function CreateSession() {
                 score
               }
             }`,
-            variables: { userId: userName || userName, limit: 10 },
+            variables: { userId: userId || userName, limit: 10 },
           }),
         });
 
