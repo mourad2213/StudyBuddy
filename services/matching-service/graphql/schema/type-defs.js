@@ -32,6 +32,7 @@ export const typeDefs = `#graphql
 
   type Mutation {
     acceptRecommendation(userId: ID!, candidateId: ID!): MatchRecommendation
+    generateRecommendations(userId: ID!, limit: Int): [MatchRecommendation!]!
     createBuddyRequest(fromUserId: ID!, toUserId: ID!): BuddyRequest
     acceptBuddyRequest(fromUserId: ID!, toUserId: ID!): BuddyRequest
     rejectBuddyRequest(fromUserId: ID!, toUserId: ID!): BuddyRequest

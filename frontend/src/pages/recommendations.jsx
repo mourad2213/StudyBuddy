@@ -1,10 +1,13 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation } from "@apollo/client/react";
 import { useNavigate } from "react-router-dom";
 
 import BuddyCard from "../components/BuddyCard";
 import { GET_RECOMMENDATIONS } from "../graphql/queries/matching";
-import { CREATE_BUDDY_REQUEST } from "../graphql/mutations/matching";
+import {
+  CREATE_BUDDY_REQUEST,
+  GENERATE_RECOMMENDATIONS,
+} from "../graphql/mutations/matching";
 import { GET_ALL_PROFILES } from "../graphql/queries/profiles";
 import { GET_ALL_USERS } from "../graphql/queries/user";
 
@@ -35,6 +38,9 @@ const REASON_TYPE_TO_CATEGORY = {
   STUDY_STYLE: "studyStyle",
 };
 
+const normalizeFilterValue = (value) =>
+  (value ?? "").toString().trim().toLowerCase();
+
 export default function Recommendations() {
   const navigate = useNavigate();
   const currentUserId = localStorage.getItem("userId");
@@ -47,6 +53,7 @@ export default function Recommendations() {
   const [sortBy, setSortBy] = useState("score");
   const [selectedBuddy, setSelectedBuddy] = useState(null);
   const [message, setMessage] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const {
     data: recommendationsData,
@@ -111,6 +118,66 @@ export default function Recommendations() {
     }
   );
 
+  const [generateRecommendations] = useMutation(GENERATE_RECOMMENDATIONS, {
+    context: {
+      uri: MATCHING_GRAPHQL,
+      headers: {
+        authorization: token ? `Bearer ${token}` : "",
+        Authorization: token ? `Bearer ${token}` : "",
+      },
+    },
+  });
+
+  useEffect(() => {
+    if (!currentUserId) {
+      return;
+    }
+
+    let isActive = true;
+
+    const loadRecommendations = async () => {
+      try {
+        console.log(`[Frontend] Starting recommendation generation for user: ${currentUserId}`);
+        setIsGenerating(true);
+        
+        const result = await generateRecommendations({
+          variables: {
+            userId: currentUserId,
+            limit: 20,
+          },
+        });
+        
+        console.log(`[Frontend] Generation result:`, {
+          success: !!result.data,
+          mutations: result.data?.generateRecommendations?.length || 0,
+        });
+
+        if (isActive) {
+          console.log(`[Frontend] Refetching recommendations...`);
+          const refetchResult = await refetch();
+          console.log(`[Frontend] Refetch returned ${refetchResult.data?.getRecommendations?.length || 0} recommendations`);
+        }
+      } catch (error) {
+        console.error("[Frontend] Error generating recommendations:", error);
+        console.error("[Frontend] Error details:", {
+          message: error.message,
+          graphQLErrors: error.graphQLErrors?.map(e => e.message),
+          networkError: error.networkError?.message,
+        });
+      } finally {
+        if (isActive) {
+          setIsGenerating(false);
+        }
+      }
+    };
+
+    loadRecommendations();
+
+    return () => {
+      isActive = false;
+    };
+  }, [currentUserId, generateRecommendations, refetch]);
+
   const recommendations = recommendationsData?.getRecommendations || [];
   const profiles = profilesData?.getAllProfiles || [];
   const users = usersData?.getAllUsers || [];
@@ -153,8 +220,26 @@ export default function Recommendations() {
     });
   }, [currentUserId, recommendations, profiles, users]);
 
+  const availableMajors = useMemo(() => {
+    return [...new Set(
+      enrichedRecommendations
+        .map((recommendation) => recommendation.profile?.major)
+        .filter((major) => major && major !== "Not specified")
+    )].sort((left, right) => left.localeCompare(right));
+  }, [enrichedRecommendations]);
+
+  const availableYears = useMemo(() => {
+    return [...new Set(
+      enrichedRecommendations
+        .map((recommendation) => recommendation.profile?.year)
+        .filter((year) => year && year !== "Not specified")
+    )].sort((left, right) => left.localeCompare(right));
+  }, [enrichedRecommendations]);
+
   const filteredRecommendations = useMemo(() => {
-    const normalizedSearch = searchTerm.trim().toLowerCase();
+    const normalizedSearch = normalizeFilterValue(searchTerm);
+    const normalizedMajorFilter = normalizeFilterValue(majorFilter);
+    const normalizedYearFilter = normalizeFilterValue(yearFilter);
 
     let result = enrichedRecommendations.filter((recommendation) => {
       const profile = recommendation.profile;
@@ -186,8 +271,12 @@ export default function Recommendations() {
       const matchesSearch =
         !normalizedSearch || searchableText.includes(normalizedSearch);
 
-      const matchesMajor = majorFilter ? profile.major === majorFilter : true;
-      const matchesYear = yearFilter ? profile.year === yearFilter : true;
+      const matchesMajor = normalizedMajorFilter
+        ? normalizeFilterValue(profile.major) === normalizedMajorFilter
+        : true;
+      const matchesYear = normalizedYearFilter
+        ? normalizeFilterValue(profile.year) === normalizedYearFilter
+        : true;
 
       return matchesSearch && matchesMajor && matchesYear && categoryReasonMatch;
     });
@@ -233,7 +322,7 @@ export default function Recommendations() {
     );
   }
 
-  if (recommendationsLoading || profilesLoading || usersLoading) {
+  if (recommendationsLoading || profilesLoading || usersLoading || isGenerating) {
     return (
       <main className="find-buddy-page">
         <p className="find-buddy-loading">Loading recommendations...</p>
@@ -331,10 +420,11 @@ export default function Recommendations() {
             onChange={(e) => setMajorFilter(e.target.value)}
           >
             <option value="">Major</option>
-            <option value="Data Science">Data Science</option>
-            <option value="Software Engineering">Software Engineering</option>
-            <option value="Computer Science">Computer Science</option>
-            <option value="Information Security">Information Security</option>
+            {availableMajors.map((major) => (
+              <option key={major} value={major}>
+                {major}
+              </option>
+            ))}
           </select>
 
           <select
@@ -342,10 +432,11 @@ export default function Recommendations() {
             onChange={(e) => setYearFilter(e.target.value)}
           >
             <option value="">Academic year</option>
-            <option value="1">Year 1</option>
-            <option value="2">Year 2</option>
-            <option value="3">Year 3</option>
-            <option value="4">Year 4</option>
+            {availableYears.map((year) => (
+              <option key={year} value={year}>
+                {year}
+              </option>
+            ))}
           </select>
 
           <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>

@@ -6,6 +6,7 @@ import {
   getIncomingBuddyRequests,
   getOutgoingBuddyRequests,
   getConnections,
+  generateAndStoreRecommendations,
   WEIGHTS,
 } from "../../matchingService.js";
 import { produceEvent, MATCHING_EVENTS } from "../../kafka.js";
@@ -68,6 +69,34 @@ export const resolvers = {
   },
 
   Mutation: {
+    generateRecommendations: async (_, { userId }) => {
+      try {
+        console.log(`\n[MUTATION] generateRecommendations START - userId: ${userId}`);
+        console.log(`[MUTATION] Calling generateAndStoreRecommendations...`);
+
+        const recommendations = await generateAndStoreRecommendations(userId);
+
+        console.log(
+          `[MUTATION] generateRecommendations SUCCESS - returned ${recommendations.length} recommendations`
+        );
+        
+        if (recommendations.length > 0) {
+          console.log(`[MUTATION] Sample recommendation:`, {
+            id: recommendations[0].id,
+            userId: recommendations[0].userId,
+            candidateId: recommendations[0].candidateId,
+            score: recommendations[0].score,
+          });
+        }
+
+        return recommendations;
+      } catch (error) {
+        console.error("\n[MUTATION] generateRecommendations ERROR:", error.message);
+        console.error("[MUTATION] Stack:", error.stack);
+        throw new Error(`Failed to generate recommendations: ${error.message}`);
+      }
+    },
+
     acceptRecommendation: async (_, { userId, candidateId }) => {
       try {
         const result = await acceptMatch(userId, candidateId);
