@@ -1,10 +1,13 @@
 ﻿import { useEffect, useState } from "react";
 import { useMutation } from "@apollo/client/react";
+import { useNavigate } from "react-router-dom";
 import { CREATE_STUDY_SESSION } from "../graphql/mutations";
 import { GET_UPCOMING_SESSIONS } from "../graphql/queries";
 import "./CreateSession.css";
 
 export default function CreateSession() {
+  const navigate = useNavigate();
+
   const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
   let currentUserName = "Me";
 
@@ -34,7 +37,6 @@ export default function CreateSession() {
 
   const userName = currentUserName === "Me" ? "" : currentUserName;
 
-  // Prefer the actual UUID stored in localStorage.userId (falls back to storedUser.id etc.)
   const userId =
     localStorage.getItem("userId") || storedUser.id || storedUser.userId || storedUser.uuid || "";
   const matchingServiceUrl =
@@ -77,14 +79,12 @@ export default function CreateSession() {
                 score
               }
             }`,
-            // use actual UUID when querying the matching service
             variables: { userId: userName || userName, limit: 10 },
           }),
         });
 
         const result = await response.json();
 
-        // If recommendations API works, use those results
         if (result.data?.getRecommendations && !result.errors) {
           const recommendations = result.data.getRecommendations;
           const mapped = recommendations.map((rec) => {
@@ -101,10 +101,8 @@ export default function CreateSession() {
               availability: `Recommended match • score ${rec.score}`,
             };
           });
-          // Start with recommendations
           let combined = mapped;
 
-          // Also fetch accepted connections and merge
           try {
             const connResp = await fetch(matchingServiceUrl, {
               method: "POST",
@@ -132,7 +130,6 @@ export default function CreateSession() {
                 };
               });
 
-              // merge and dedupe by matchedUserId
               const seen = new Set();
               combined = [...combined, ...mappedConns].filter((b) => {
                 const key = (b.matchedUserId ?? b.candidateId ?? b.id ?? b.name).toString();
@@ -145,7 +142,6 @@ export default function CreateSession() {
             console.warn("Failed to load connections:", err);
           }
 
-          // Resolve display names by fetching user list from the user service
           try {
             const usersResp = await fetch(userServiceUrl, {
               method: "POST",
@@ -174,15 +170,12 @@ export default function CreateSession() {
           return;
         }
 
-        // If matching service has errors, log them but continue
         if (result.errors) {
           console.warn("Matching service error:", result.errors[0]?.message);
         }
 
-        // Fallback: show message that matching service is unavailable
         console.log("Matching service unavailable. Using offline buddy list.");
-        
-        // Show empty state message - user can still create session
+
         if (isActive) {
           setRecommendedBuddies([]);
         }
@@ -305,7 +298,6 @@ export default function CreateSession() {
         throw new Error("Invalid date or time selected");
       }
 
-      // Validate that the selected date/time is in the future
       const now = new Date();
       if (selectedDateTime <= now) {
         alert("Please select a date and time in the future");
@@ -323,7 +315,7 @@ export default function CreateSession() {
         location: formData.sessionType === "In-person" ? formData.room : null,
         dateTime,
         durationMins: Number(formData.duration),
-          creatorId: userName,
+        creatorId: userName,
         contactInfo: "",
         possibleMemberIds: formData.selectedBuddies.map((b) =>
           (b.matchedUserId ?? b.id).toString()
@@ -336,15 +328,7 @@ export default function CreateSession() {
 
       if (response.data) {
         alert("Session created successfully!");
-        setFormData({
-          topic: "",
-          sessionType: "Online",
-          room: "",
-          duration: 45,
-          selectedBuddies: [],
-          date: "",
-          time: "",
-        });
+        navigate("/sessions");
       }
     } catch (error) {
       console.error("Error creating session:", error);
@@ -400,7 +384,7 @@ export default function CreateSession() {
                 <div className="field">
                   <label>
                    Room <span>*</span>
-                  </label> 
+                  </label>
 
                   <input
                     type="text"
@@ -575,8 +559,15 @@ export default function CreateSession() {
             </div>
           </div>
 
-          {/* BUTTON */}
+          {/* BUTTONS */}
           <div className="submit-wrapper">
+            <button
+              type="button"
+              className="cancel-btn"
+              onClick={() => navigate("/sessions")}
+            >
+              Cancel
+            </button>
             <button type="submit" className="create-btn" disabled={creating}>
               {creating ? "Creating..." : "Create"}
             </button>
