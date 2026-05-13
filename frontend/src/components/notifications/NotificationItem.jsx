@@ -9,7 +9,14 @@ import {
 } from "../../graphql/queries/sessions";
 
 function getRelativeTime(dateString) {
-  const created = new Date(dateString);
+  if (!dateString) return "";
+  
+  const created = new Date(
+    isNaN(dateString) ? dateString : Number(dateString)  // handle both ISO strings and unix timestamps
+  );
+
+  if (isNaN(created.getTime())) return "";  // guard against invalid dates
+
   const now = new Date();
 
   const diffMs = now - created;
