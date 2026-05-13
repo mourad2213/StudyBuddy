@@ -57,6 +57,7 @@ export default function AvailabilityPage() {
     skip: !currentUserId,
     fetchPolicy: "cache-and-network",
     context: {
+      uri: AVAILABILITY_GRAPHQL,
       headers: {
         authorization: token ? `Bearer ${token}` : "",
         Authorization: token ? `Bearer ${token}` : "",
@@ -68,6 +69,7 @@ export default function AvailabilityPage() {
     CREATE_AVAILABILITY,
     {
       context: {
+        uri: AVAILABILITY_GRAPHQL,
         headers: {
           authorization: token ? `Bearer ${token}` : "",
           Authorization: token ? `Bearer ${token}` : "",
@@ -79,6 +81,7 @@ export default function AvailabilityPage() {
     UPDATE_AVAILABILITY,
     {
       context: {
+        uri: AVAILABILITY_GRAPHQL,
         headers: {
           authorization: token ? `Bearer ${token}` : "",
           Authorization: token ? `Bearer ${token}` : "",
@@ -88,6 +91,7 @@ export default function AvailabilityPage() {
   );
   const [deleteAvailability] = useMutation(DELETE_AVAILABILITY, {
     context: {
+      uri: AVAILABILITY_GRAPHQL,
       headers: {
         authorization: token ? `Bearer ${token}` : "",
         Authorization: token ? `Bearer ${token}` : "",

@@ -120,7 +120,7 @@ const messagingOperations = [
 
 const availabilityOperations = [
   "GetAvailability",
-  "SetAvailability",
+  "CreateAvailability",
   "UpdateAvailability",
   "DeleteAvailability",
   "GetUserAvailability",
