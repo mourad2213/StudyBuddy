@@ -3,11 +3,13 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery } from "@apollo/client/react";
 import { GET_ALL_USERS } from "../graphql/queries/user";
 import { GET_PROFILE } from "../graphql/queries/profiles";
+import { CREATE_CONVERSATION } from "../graphql/mutations";
 import { CREATE_BUDDY_REQUEST } from "../graphql/queries/buddyRequests";
 import "./MatchDetailsPage.css";
 
 const PROFILE_GRAPHQL = "http://localhost:4006/graphql";
 const MATCHING_GRAPHQL = "http://localhost:4003/graphql";
+const MESSAGING_GRAPHQL = "http://localhost:4008/graphql";
 const AVATAR_POOL = [
   "/avatar-fadi.svg",
   "/avatar-sofyan.svg",
@@ -113,9 +115,55 @@ export default function MatchDetailsPage() {
       setLoginPrompt("Log in and start your study journey");
       return;
     }
+    // Determine a usable username for the current user (mirror ChatApp logic)
+    const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
 
-    navigate("/chat");
+    let currentUsername = localStorage.getItem("username");
+    if (!currentUsername) {
+      currentUsername =
+        storedUser.loginUsername || storedUser.actual_username || storedUser.username || "";
+    }
+
+    if (!currentUsername) {
+      // Fallback: try to find a non-system key in localStorage
+      const systemKeys = new Set(["token", "userId", "user", "cart", "favoriteColor"]);
+      const possible = Object.keys(localStorage).find(
+        (k) => !systemKeys.has(k) && k !== localStorage.getItem("userId")
+      );
+      currentUsername = possible || "";
+    }
+
+    const otherUsername = user?.name || "";
+      
+    if (!currentUsername || !otherUsername) {
+      setLoginPrompt("Unable to start chat right now.");
+      
+      return;
+    }
+
+    createConversation({
+      variables: { participant1Id: currentUsername, participant2Id: otherUsername },
+    })
+      .then(() => {
+        navigate("/chat");
+      })
+      .catch((err) => {
+        const errorMessage =
+          err?.graphQLErrors?.[0]?.message || err?.message || "";
+
+        if (errorMessage === "Users must be matched before creating a conversation") {
+          alert("You must be matched before creating a conversation");
+          return;
+        }
+
+        alert("Unable to start chat right now.");
+      });
   };
+
+  const [createConversation, { loading: creatingConversation }] = useMutation(
+    CREATE_CONVERSATION,
+    { context: { uri: MESSAGING_GRAPHQL } },
+  );
 
   if (isLoading) {
     return (
@@ -167,8 +215,9 @@ export default function MatchDetailsPage() {
                 className="match-action-button"
                 onClick={handleMessage}
                 type="button"
+                disabled={creatingConversation}
               >
-                Message
+                {creatingConversation ? "Starting..." : "Message"}
               </button>
               <button
                 className="match-action-button outline"

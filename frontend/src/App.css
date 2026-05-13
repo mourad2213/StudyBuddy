@@ -910,7 +910,8 @@ body,
 .find-buddy-page {
   min-height: 100vh;
   background: #f3efec;
-  padding: 36px 54px 90px;
+  padding: 40px 32px 80px;
+  box-sizing: border-box;
   color: #2e3d53;
   font-family: "Playfair Display", Georgia, serif;
 }
@@ -937,7 +938,7 @@ body,
 
 .find-buddy-layout {
   display: grid;
-  grid-template-columns: 1fr 178px;
+  grid-template-columns: 1fr 200px;
   gap: 24px;
   align-items: start;
 }
@@ -951,7 +952,7 @@ body,
 
 .find-buddy-grid {
   display: grid;
-  grid-template-columns: repeat(3, 146px);
+  grid-template-columns: repeat(3, 220px);
   gap: 16px 46px;
   justify-content: center;
   align-items: start;

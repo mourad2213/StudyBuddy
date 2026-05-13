@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation } from "@apollo/client/react";
+import { useNavigate } from "react-router-dom";
 
 import BuddyCard from "../components/BuddyCard";
 import { GET_RECOMMENDATIONS } from "../graphql/queries/matching";
@@ -35,6 +36,7 @@ const REASON_TYPE_TO_CATEGORY = {
 };
 
 export default function Recommendations() {
+  const navigate = useNavigate();
   const currentUserId = localStorage.getItem("userId");
   const token = localStorage.getItem("token");
 
@@ -208,6 +210,7 @@ export default function Recommendations() {
 
       setMessage("Buddy request sent successfully!");
       await refetch();
+      navigate(`/match/${candidateId}`);
     } catch (err) {
       setMessage(err.message || "Failed to send buddy request.");
     }

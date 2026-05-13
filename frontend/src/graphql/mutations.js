@@ -37,3 +37,13 @@ export const UPDATE_TOPIC = gql`
     }
   }
 `;
+
+export const CREATE_CONVERSATION = gql`
+  mutation CreateConversation($participant1Id: String!, $participant2Id: String!) {
+    createConversation(participant1Id: $participant1Id, participant2Id: $participant2Id) {
+      id
+      participant1Id
+      participant2Id
+    }
+  }
+`;

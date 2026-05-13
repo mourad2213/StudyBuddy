@@ -7,7 +7,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("AVAILABILITY_DB")
+  url      = env("DATABASE_URL")
 }
 
 model Availability {

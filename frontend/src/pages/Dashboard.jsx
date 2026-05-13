@@ -249,7 +249,7 @@ export default function Dashboard() {
                   <Link to="/create-session" className="dashboard-button">Create your first session</Link>
                 </div>
               ) : (
-                <div className="sessions-grid">
+                <div className="minisessions-grid">
                   {upcomingSessions.slice(0, 4).map((session) => (
                     <div key={session.id} className="session-card">
                       <div className="session-card-top">

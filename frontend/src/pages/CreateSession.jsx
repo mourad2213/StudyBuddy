@@ -160,6 +160,9 @@ export default function CreateSession() {
 
   const [isBuddyDropdownOpen, setIsBuddyDropdownOpen] = useState(false);
 
+  const getBuddyKey = (buddy) =>
+    (buddy?.candidateId ?? buddy?.id ?? buddy?.userId ?? buddy?.name ?? "").toString();
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -170,15 +173,14 @@ export default function CreateSession() {
 
   const handleSelectBuddy = (buddy) => {
     setFormData((prev) => {
+      const buddyKey = getBuddyKey(buddy);
       const isSelected = prev.selectedBuddies.some(
-        (b) => b.name === buddy.name || b.userId === buddy.userId || b.candidateId === buddy.candidateId
+        (b) => getBuddyKey(b) === buddyKey
       );
       return {
         ...prev,
         selectedBuddies: isSelected
-          ? prev.selectedBuddies.filter(
-              (b) => b.name !== buddy.name && b.userId !== buddy.userId && b.candidateId !== buddy.candidateId
-            )
+          ? prev.selectedBuddies.filter((b) => getBuddyKey(b) !== buddyKey)
           : [...prev.selectedBuddies, buddy],
       };
     });
@@ -192,9 +194,7 @@ export default function CreateSession() {
   };
 
   const isBuddySelected = (buddyId) => {
-    return formData.selectedBuddies.some(
-      (b) => b.name === buddyId || b.userId === buddyId || b.candidateId === buddyId
-    );
+    return formData.selectedBuddies.some((b) => getBuddyKey(b) === buddyId);
   };
 
   const handleCreate = async (e) => {
@@ -411,7 +411,7 @@ export default function CreateSession() {
               <div className="field">
                 <div className="field buddy-field"></div>
                 <label>
-                  Choose Your Buddy <span>*</span>
+                  Choose Your Buddy/Buddies <span>*</span>
                 </label>
 
                 <div className="buddy-box">
@@ -426,7 +426,7 @@ export default function CreateSession() {
                       {formData.selectedBuddies.length > 0 ? (
                         <div className="buddy-tags">
                           {formData.selectedBuddies.map((buddy) => (
-                                <span key={buddy.userId ?? buddy.name} className="buddy-tag">
+                              <span key={getBuddyKey(buddy)} className="buddy-tag">
                               {buddy.name}
 
                               <button
@@ -469,16 +469,16 @@ export default function CreateSession() {
                       {buddyList.map((buddy) => (
                         <button
                           type="button"
-                          key={buddy.userId ?? buddy.name}
+                          key={getBuddyKey(buddy)}
                           className={`buddy-item ${
-                            isBuddySelected(buddy.name)
+                            isBuddySelected(getBuddyKey(buddy))
                               ? "selected"
                               : ""
                           }`}
                           onClick={() => handleSelectBuddy(buddy)}
                         >
                           <div className="buddy-checkbox">
-                            {isBuddySelected(buddy.name) && <span>✓</span>}
+                            {isBuddySelected(getBuddyKey(buddy)) && <span>✓</span>}
                           </div>
 
                           <div className="buddy-avatar">
