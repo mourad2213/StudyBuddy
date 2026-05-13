@@ -9,8 +9,6 @@ const validateKafkaConfig = () => {
   const username = process.env.KAFKA_USERNAME?.trim();
   const password = process.env.KAFKA_PASSWORD?.trim();
 
-  console.log("KAFKA_BROKERS raw value:", JSON.stringify(brokers));
-
   if (!brokers) {
     throw new Error(
       "KAFKA_BROKERS environment variable is required (comma-separated: host1:9092,host2:9092)"
@@ -43,13 +41,7 @@ const kafka = new Kafka({
   clientId: "availability-service",
   brokers,
 
-  // ✅ ALWAYS use SSL for Aiven
-  ssl: {
-    ca: [process.env.KAFKA_CA_CERT?.replace(/\\n/g, '\n')],
-    rejectUnauthorized: true,
-  },
-
-  // ✅ ALWAYS use SASL plain for Aiven
+  ssl: true,
   sasl: {
     mechanism: "plain",
     username,
