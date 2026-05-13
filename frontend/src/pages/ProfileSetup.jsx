@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { gql } from "@apollo/client";
 import { useMutation } from "@apollo/client/react";
-import { profileClient } from "../main";
+//import { profileClient } from "../main";
 import "./ProfileSetup.css";
 
 const academicYears = [
@@ -66,11 +66,9 @@ export default function ProfileSetup() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const [createProfile] = useMutation(CREATE_PROFILE, {
-    client: profileClient,
-  });
-  const [addCourse] = useMutation(ADD_COURSE, { client: profileClient });
-  const [addTopic] = useMutation(ADD_TOPIC, { client: profileClient });
+  const [createProfile] = useMutation(CREATE_PROFILE);
+  const [addCourse] = useMutation(ADD_COURSE);
+  const [addTopic] = useMutation(ADD_TOPIC);
 
   const handleSave = async (e) => {
     e.preventDefault();

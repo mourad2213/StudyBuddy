@@ -369,3 +369,36 @@
     gap: 6px;
   }
 }
+
+/* Prevent Sessions.css from bleeding into Dashboard */
+.dashboard-section .session-card {
+  width: 100%;
+  flex-direction: column;
+  display: grid;
+}
+
+.dashboard-section .sessions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.dashboard-section .session-topic {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--navy);
+  margin: 0;
+}
+
+.dashboard-section .session-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.dashboard-section .session-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}

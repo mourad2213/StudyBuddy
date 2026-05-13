@@ -71,12 +71,23 @@ const notificationOperations = [
 ];
 
 // Profile Service Operations
-const profileOperations = [
-  "GetProfile",
-  "GetProfileByUserId",
-  "UpdateProfile",
-  "CreateProfile",
-];
+  const profileOperations = [
+    "GetProfile",
+    "GetProfileByUserId",
+    "UpdateProfile",
+    "CreateProfile",
+    "SaveProfile",
+    "AddCourse",
+    "AddTopic",
+    "SetPreference",
+    "UpdatePreference",
+    "CreateOrUpdateProfile",
+    "UpdateCourse",
+    "DeleteCourse",
+    "UpdateTopic",
+    "DeleteTopic",
+    "GetAllProfiles",
+  ];
 
 /* =========================
    Router Link
@@ -121,3 +132,6 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     </ApolloProvider>
   </React.StrictMode>
 );
+
+export { client as userClient };
+export { client as profileClient };

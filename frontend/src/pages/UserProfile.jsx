@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { gql } from "@apollo/client";
 import { useQuery, useMutation } from "@apollo/client/react";
-import { profileClient } from "../main";
+//import { profileClient } from "../main";
 import "./UserProfile.css";
 
 const GET_PROFILE = gql`
@@ -161,23 +161,19 @@ export default function UserProfile() {
   const [saving, setSaving] = useState(false);
 
   const { data, loading, error, refetch } = useQuery(GET_PROFILE, {
-    client: profileClient,
-    variables: { userId },
-    skip: !userId,
-  });
+      variables: { userId },
+      skip: !userId,
+    });
 
-  const [updateProfile] = useMutation(UPDATE_PROFILE, {
-    client: profileClient,
-  });
-  const [updatePreference] = useMutation(UPDATE_PREFERENCE, {
-    client: profileClient,
-  });
-  const [addCourse] = useMutation(ADD_COURSE, { client: profileClient });
-  const [updateCourse] = useMutation(UPDATE_COURSE, { client: profileClient });
-  const [deleteCourse] = useMutation(DELETE_COURSE, { client: profileClient });
-  const [addTopic] = useMutation(ADD_TOPIC, { client: profileClient });
-  const [updateTopic] = useMutation(UPDATE_TOPIC, { client: profileClient });
-  const [deleteTopic] = useMutation(DELETE_TOPIC, { client: profileClient });
+  const [updateProfile] = useMutation(UPDATE_PROFILE);
+  const [updatePreference] = useMutation(UPDATE_PREFERENCE);
+
+  const [addCourse] = useMutation(ADD_COURSE);
+  const [updateCourse] = useMutation(UPDATE_COURSE);
+  const [deleteCourse] = useMutation(DELETE_COURSE);
+  const [addTopic] = useMutation(ADD_TOPIC);
+  const [updateTopic] = useMutation(UPDATE_TOPIC);
+  const [deleteTopic] = useMutation(DELETE_TOPIC);
 
   const profile = data?.getProfile;
 

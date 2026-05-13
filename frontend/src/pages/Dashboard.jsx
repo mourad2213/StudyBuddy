@@ -72,6 +72,14 @@ function scoreMatch(currentProfile, candidate) {
 
 export default function Dashboard() {
   const currentUserId = getCurrentUserId();
+
+  function getCurrentUserName() {
+    const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+    return storedUser?.name || storedUser?.username || "";
+  }
+  
+  const sessionUserId = getCurrentUserName();
+
   const currentUserName = getCurrentUserName();
 
   const { data: profileData, loading: profileLoading, error: profileError } = useQuery(GET_PROFILE, {
@@ -82,16 +90,19 @@ export default function Dashboard() {
 
   const { data: usersData, loading: usersLoading, error: usersError } = useQuery(GET_ALL_USERS, {
     fetchPolicy: "cache-and-network",
+    context: { uri: "http://localhost:4001/graphql" },
   });
 
   const { data: profilesData, loading: profilesLoading, error: profilesError } = useQuery(GET_ALL_PROFILES, {
     fetchPolicy: "cache-and-network",
+    context: { uri: "http://localhost:4006/graphql" },
   });
 
   const { data: upcomingData, loading: upcomingLoading, error: upcomingError } = useQuery(GET_UPCOMING_SESSIONS, {
-    skip: !currentUserId,
-    variables: { userId: currentUserId },
+    skip: !sessionUserId,
+    variables: { userId: sessionUserId },
     fetchPolicy: "cache-and-network",
+    context: { uri: "http://localhost:4007/graphql" },
   });
 
   const { data: notificationsData, loading: notificationsLoading } = useQuery(GET_NOTIFICATIONS, {
@@ -191,7 +202,7 @@ export default function Dashboard() {
           <section className="dashboard-section dashboard-recommended">
             <div className="section-heading">
               <h2>Recommended study buddies:</h2>
-              <Link to="/friends" className="section-action">view all →</Link>
+              <Link to="/find-buddy" className="section-action">view all →</Link>
             </div>
 
             {recommendedLoading ? (
@@ -203,7 +214,7 @@ export default function Dashboard() {
             ) : (
               <div className="recommended-grid">
                 {recommendedBuddies.map((buddy) => (
-                  <Link key={buddy.id} to={`/match/${buddy.userId}`} className="recommended-card-link">
+                  <Link key={buddy.id} to="/find-buddy" className="recommended-card-link">
                     <BuddyCard
                       name={buddy.name}
                       major={buddy.major}

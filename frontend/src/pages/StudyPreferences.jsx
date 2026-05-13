@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { gql } from "@apollo/client";
 import { useMutation } from "@apollo/client/react";
-import { profileClient } from "../main";
+//import { profileClient } from "../main";
 import "./StudyPreferences.css";
 
 const paceOptions = ["Slow", "Medium", "Fast"];
@@ -52,9 +52,8 @@ export default function StudyPreferences() {
   const [styleOpen, setStyleOpen] = useState(false);
   const [error, setError] = useState("");
 
-  const [setPreference, { loading }] = useMutation(SET_PREFERENCE, {
-    client: profileClient,
-  });
+  const [setPreference, { loading }] = useMutation(SET_PREFERENCE);
+
 
   const toggleStyle = (style) => {
     setForm((prev) => ({
