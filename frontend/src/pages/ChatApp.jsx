@@ -3,6 +3,10 @@ import "./ChatApp.css";
 
 const messagingServiceUrl =
   import.meta.env.VITE_MESSAGING_SERVICE_URL || "http://localhost:4008/graphql";
+const matchingServiceUrl =
+  import.meta.env.VITE_MATCHING_SERVICE_URL || "http://localhost:4003/graphql";
+const userServiceUrl =
+  import.meta.env.VITE_USER_SERVICE_URL || "http://localhost:4001/graphql";
 
 const GET_CONVERSATIONS_QUERY = `
   query GetConversations($userId: String!) {
@@ -64,6 +68,37 @@ const MARK_AS_READ_MUTATION = `
   }
 `;
 
+const GET_CONNECTIONS_QUERY = `
+  query GetConnections($userId: ID!) {
+    getConnections(userId: $userId) {
+      id
+      fromUserId
+      toUserId
+      status
+      createdAt
+    }
+  }
+`;
+
+const GET_ALL_USERS_QUERY = `
+  query GetAllUsers {
+    getAllUsers {
+      id
+      name
+    }
+  }
+`;
+
+const CREATE_CONVERSATION_MUTATION = `
+  mutation CreateConversation($participant1Id: String!, $participant2Id: String!) {
+    createConversation(participant1Id: $participant1Id, participant2Id: $participant2Id) {
+      id
+      participant1Id
+      participant2Id
+    }
+  }
+`;
+
 function avatarFor(seed) {
   const normalized = seed || "user";
   return `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(normalized)}&backgroundColor=b6e3f4,c0aede,ffd5dc,d1f4cc,ffe4b5`;
@@ -75,8 +110,8 @@ function formatTime(timestamp) {
   return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }).toLowerCase();
 }
 
-async function runGraphQL(query, variables = {}) {
-  const response = await fetch(messagingServiceUrl, {
+async function runGraphQL(query, variables = {}, serviceUrl = messagingServiceUrl) {
+  const response = await fetch(serviceUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ query, variables }),
@@ -146,54 +181,37 @@ function updateConversationsWithIncomingMessage(conversations, incomingMessage, 
     .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
 }
 
+function normalizeConversationKey(participant1Id, participant2Id) {
+  return [String(participant1Id || ""), String(participant2Id || "")]
+    .sort()
+    .join("::");
+}
+
 export default function ChatApp() {
   const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
-  
-  // Determine the actual username to use for API queries
-  // The login system stores the username as a key in localStorage (e.g., 'finalTest2' as key)
-  let currentUserName = "Me";
-  
-  // Strategy 1: direct "username" key
-  const directUsername = localStorage.getItem("username");
-  if (directUsername) {
-    currentUserName = directUsername;
-  } else {
-    // Strategy 2: storedUser fields (fallback from old login systems)
-    currentUserName = 
-      storedUser.loginUsername ||
-      storedUser.actual_username ||
-      storedUser.username ||
-      "Me";
-  }
-
-  // Strategy 3: if still "Me", find the username by excluding system keys
-  if (currentUserName === "Me") {
-    const systemKeys = new Set(["token", "userId", "user", "cart", "favoriteColor"]);
-    const userIdUuid = localStorage.getItem("userId") || "";
-    const possibleUsernameKey = Object.keys(localStorage).find(key => 
-      !systemKeys.has(key) && key !== userIdUuid && !key.match(/^[0-9a-f\-]{36}$/) // exclude UUID format
-    );
-    if (possibleUsernameKey) {
-      currentUserName = possibleUsernameKey;
-    }
-  }
+  const currentUserId = String(
+    localStorage.getItem("userId") || storedUser.id || storedUser.userId || ""
+  );
+  const currentUserName =
+    localStorage.getItem("userName") ||
+    localStorage.getItem("username") ||
+    storedUser.name ||
+    storedUser.username ||
+    storedUser.loginUsername ||
+    storedUser.actual_username ||
+    currentUserId ||
+    "Me";
+  const [userNamesById, setUserNamesById] = useState({});
 
   // Debug: log all localStorage keys and the extracted username
   useEffect(() => {
     const allKeys = Object.keys(localStorage);
     console.log("[ChatApp] localStorage keys:", allKeys);
+    console.log("[ChatApp] currentUserId resolved to:", currentUserId);
     console.log("[ChatApp] currentUserName resolved to:", currentUserName);
     console.log("[ChatApp] storedUser from 'user' key:", storedUser);
-    console.log("[ChatApp] About to fetch conversations for userId:", currentUserName);
-  }, [currentUserName]);
-  
-  // Keep UUID for UI display
-  const currentUserIdRaw =
-    storedUser.userId ||
-    storedUser.id ||
-    localStorage.getItem("userId") ||
-    "";
-  const currentUserId = String(currentUserIdRaw || "");
+    console.log("[ChatApp] About to fetch conversations for userId:", currentUserId);
+  }, [currentUserId, currentUserName, storedUser]);
 
   const [conversations, setConversations] = useState([]);
   const [activeConversationId, setActiveConversationId] = useState(null);
@@ -233,29 +251,114 @@ export default function ChatApp() {
   }, [messages]);
 
   const loadConversations = useCallback(async () => {
-    if (!currentUserName) return;
+    if (!currentUserId) return;
 
     setLoadingConversations(true);
     setError("");
 
     try {
-      console.log("[ChatApp] Loading conversations for username:", currentUserName);
-      const data = await runGraphQL(GET_CONVERSATIONS_QUERY, { userId: currentUserName });
-      console.log("[ChatApp] Raw response data:", JSON.stringify(data, null, 2));
-      
-      const loaded = Array.isArray(data?.getConversations)
-        ? data.getConversations
+      console.log("[ChatApp] Loading connections and conversations for userId:", currentUserId);
+
+      const [connectionsData, conversationsData] = await Promise.all([
+        runGraphQL(GET_CONNECTIONS_QUERY, { userId: currentUserId }, matchingServiceUrl),
+        runGraphQL(GET_CONVERSATIONS_QUERY, { userId: currentUserId }),
+      ]);
+
+      const usersData = await runGraphQL(GET_ALL_USERS_QUERY, {}, userServiceUrl).catch((err) => {
+        console.warn("[ChatApp] Failed to load user directory:", err);
+        return null;
+      });
+
+      const userDirectory = Object.fromEntries(
+        (Array.isArray(usersData?.getAllUsers) ? usersData.getAllUsers : []).map((user) => [
+          String(user.id),
+          user.name || String(user.id),
+        ])
+      );
+      setUserNamesById(userDirectory);
+
+      const connections = Array.isArray(connectionsData?.getConnections)
+        ? connectionsData.getConnections
         : [];
+      const loaded = Array.isArray(conversationsData?.getConversations)
+        ? conversationsData.getConversations
+        : [];
+      const existingPairs = new Set(
+        loaded.map((conversation) =>
+          normalizeConversationKey(conversation.participant1Id, conversation.participant2Id)
+        )
+      );
+
+      const missingConnections = connections
+        .map((connection) => {
+          const otherUserId =
+            String(connection.fromUserId) === currentUserId
+              ? connection.toUserId
+              : connection.fromUserId;
+
+          return {
+            ...connection,
+            otherUserId: String(otherUserId || ""),
+          };
+        })
+        .filter(
+          (connection) =>
+            connection.otherUserId &&
+            !existingPairs.has(normalizeConversationKey(currentUserId, connection.otherUserId))
+        );
+
+      if (missingConnections.length > 0) {
+        const creationResults = await Promise.allSettled(
+          missingConnections.map((connection) =>
+            runGraphQL(
+              CREATE_CONVERSATION_MUTATION,
+              {
+                participant1Id: currentUserId,
+                participant2Id: connection.otherUserId,
+              },
+              messagingServiceUrl
+            )
+          )
+        );
+
+        creationResults.forEach((result, index) => {
+          if (result.status === "rejected") {
+            console.warn(
+              "[ChatApp] Failed to create conversation for connection:",
+              missingConnections[index],
+              result.reason
+            );
+          }
+        });
+
+        const refreshedData = await runGraphQL(GET_CONVERSATIONS_QUERY, { userId: currentUserId });
+        const refreshed = Array.isArray(refreshedData?.getConversations)
+          ? refreshedData.getConversations
+          : [];
+
+        console.log("[ChatApp] Conversations refreshed after sync, count:", refreshed.length);
+        setConversations(refreshed);
+        setActiveConversationId((prev) => {
+          if (prev && refreshed.some((conversation) => String(conversation.id) === String(prev))) {
+            return prev;
+          }
+          return refreshed[0]?.id || null;
+        });
+        return;
+      }
 
       console.log("[ChatApp] Setting conversations, count:", loaded.length);
-      loaded.forEach((conv, idx) => {
-        const otherUserId = conv.participant1Id === currentUserName ? conv.participant2Id : conv.participant1Id;
-        console.log(`  [${idx}] conversation id: ${conv.id}, with user: ${otherUserId}`);
+      loaded.forEach((conversation, idx) => {
+        const otherUserId =
+          String(conversation.participant1Id) === currentUserId
+            ? conversation.participant2Id
+            : conversation.participant1Id;
+        console.log(`  [${idx}] conversation id: ${conversation.id}, with user: ${otherUserId}`);
       });
-      
+
       setConversations(loaded);
       setActiveConversationId((prev) => {
-        if (prev && loaded.some((conv) => conv.id === prev)) return prev;
+        if (prev && loaded.some((conv) => String(conv.id) === String(prev))) return prev;
         return loaded[0]?.id || null;
       });
     } catch (err) {
@@ -264,19 +367,19 @@ export default function ChatApp() {
     } finally {
       setLoadingConversations(false);
     }
-  }, [currentUserName]);
+  }, [currentUserId]);
 
   useEffect(() => {
-    if (!currentUserName) {
-      setError("No username found. Please log in first.");
+    if (!currentUserId) {
+      setError("No user ID found. Please log in first.");
       return;
     }
 
     loadConversations();
-  }, [currentUserName, loadConversations]);
+  }, [currentUserId, loadConversations]);
 
   useEffect(() => {
-    if (!activeConversationId || !currentUserName) {
+    if (!activeConversationId || !currentUserId) {
       setMessages([]);
       return;
     }
@@ -290,17 +393,17 @@ export default function ChatApp() {
       // Mark as read (non-blocking)
       runGraphQL(MARK_AS_READ_MUTATION, {
         conversationId: activeConversationId,
-        userId: currentUserName,
+        userId: currentUserId,
       }).catch(() => {
         // Silent fail
       });
     } else {
       setMessages([]);
     }
-  }, [activeConversationId, conversations, currentUserName]);
+  }, [activeConversationId, conversations, currentUserId]);
 
   useEffect(() => {
-    if (!currentUserName) return;
+    if (!currentUserId) return;
 
     const socket = new WebSocket(getMessagingWebSocketUrl(messagingServiceUrl));
 
@@ -308,7 +411,7 @@ export default function ChatApp() {
       socket.send(
         JSON.stringify({
           type: "authenticate",
-          userId: currentUserName,
+          userId: currentUserId,
         })
       );
     });
@@ -322,7 +425,7 @@ export default function ChatApp() {
         return;
       }
 
-      if (payload.type !== "new_message" || payload.senderId === currentUserName) {
+      if (payload.type !== "new_message" || String(payload.senderId) === String(currentUserId)) {
         return;
       }
 
@@ -343,7 +446,14 @@ export default function ChatApp() {
     return () => {
       socket.close();
     };
-  }, [activeConversationId, currentUserName, loadConversations]);
+  }, [activeConversationId, currentUserId, loadConversations]);
+
+  const resolveUserName = (userId) => {
+    const normalizedUserId = String(userId || "");
+    if (!normalizedUserId) return "Unknown user";
+    if (normalizedUserId === currentUserId) return currentUserName;
+    return userNamesById[normalizedUserId] || normalizedUserId;
+  };
 
   const contacts = conversations
     .map((conv) => {
@@ -351,9 +461,9 @@ export default function ChatApp() {
       const participant2Id = String(conv?.participant2Id || "");
       let otherUserId = "Unknown user";
 
-      if (participant1Id === currentUserName) {
+      if (participant1Id === currentUserId) {
         otherUserId = participant2Id || "Unknown user";
-      } else if (participant2Id === currentUserName) {
+      } else if (participant2Id === currentUserId) {
         otherUserId = participant1Id || "Unknown user";
       } else {
         otherUserId = participant2Id || participant1Id || "Unknown user";
@@ -362,7 +472,7 @@ export default function ChatApp() {
       return {
         id: conv.id,
         conversationId: conv.id,
-        name: otherUserId,
+        name: resolveUserName(otherUserId),
         avatar: avatarFor(otherUserId),
         lastMessage: conv.lastMessage?.content || "No messages yet",
       };
@@ -377,15 +487,15 @@ export default function ChatApp() {
         const participant1Id = String(conv?.participant1Id || "");
         const participant2Id = String(conv?.participant2Id || "");
         const otherUserId =
-          participant1Id === currentUserName
+          participant1Id === currentUserId
             ? participant2Id
-            : participant2Id === currentUserName
+            : participant2Id === currentUserId
               ? participant1Id
               : participant2Id || participant1Id || "Unknown user";
 
         return {
           conversationId: conv.id,
-          name: otherUserId || "Unknown user",
+          name: resolveUserName(otherUserId) || "Unknown user",
           avatar: avatarFor(otherUserId || "user"),
         };
       })
@@ -394,13 +504,13 @@ export default function ChatApp() {
 
   const sendMessage = () => {
     const trimmed = input.trim();
-    if (!trimmed || !activeConversationId || !currentUserName) return;
+    if (!trimmed || !activeConversationId || !currentUserId) return;
 
     const submitMessage = async () => {
       try {
         const data = await runGraphQL(SEND_MESSAGE_MUTATION, {
           conversationId: activeConversationId,
-          senderId: currentUserName,
+          senderId: currentUserId,
           senderName: currentUserName,
           content: trimmed,
         });
@@ -443,7 +553,7 @@ export default function ChatApp() {
   };
 
   const uiMessages = messages.map((msg) => {
-    const isMe = msg.senderId === currentUserName;
+    const isMe = String(msg.senderId) === String(currentUserId);
     const senderSeed = isMe ? currentUserName : msg.senderId;
     return {
       id: msg.id,
@@ -451,7 +561,7 @@ export default function ChatApp() {
       text: msg.content,
       time: formatTime(msg.createdAt),
       avatar: avatarFor(senderSeed),
-      senderName: msg.senderName || (isMe ? currentUserName : msg.senderId),
+      senderName: msg.senderName || (isMe ? currentUserName : resolveUserName(msg.senderId)),
     };
   });
 

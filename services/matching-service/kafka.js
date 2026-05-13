@@ -18,6 +18,7 @@ export const MATCHING_EVENTS = {
   AVAILABILITY_UPDATED: 'AvailabilityUpdated',
   AVAILABILITY_DELETED: 'AvailabilityDeleted',
   BUDDY_REQUEST_CREATED: 'BuddyRequestCreated',
+  BUDDY_REQUEST_RESPONDED: 'BuddyRequestResponded',
   MATCH_FOUND: 'MatchFound',
   RECOMMENDATIONS_GENERATED: 'RecommendationsGenerated',
 };

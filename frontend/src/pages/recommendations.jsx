@@ -115,13 +115,22 @@ export default function Recommendations() {
   const profiles = profilesData?.getAllProfiles || [];
   const users = usersData?.getAllUsers || [];
   const enrichedRecommendations = useMemo(() => {
-    return recommendations.map((recommendation, index) => {
+    return recommendations
+      .map((recommendation) => ({
+        ...recommendation,
+        matchedUserId:
+          recommendation.userId === currentUserId
+            ? recommendation.candidateId
+            : recommendation.userId,
+      }))
+      .filter((recommendation) => recommendation.matchedUserId !== currentUserId)
+      .map((recommendation, index) => {
       const realProfile = profiles.find(
-        (profile) => profile.userId === recommendation.candidateId
+        (profile) => profile.userId === recommendation.matchedUserId
       );
 
       const realUser = users.find(
-        (user) => user.id === recommendation.candidateId
+        (user) => user.id === recommendation.matchedUserId
       );
 
       const courses =
@@ -142,7 +151,7 @@ export default function Recommendations() {
         },
       };
     });
-  }, [recommendations, profiles, users]);
+  }, [currentUserId, recommendations, profiles, users]);
 
   const filteredRecommendations = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -285,7 +294,7 @@ export default function Recommendations() {
                     reason={firstReason}
                     onViewProfile={() => setSelectedBuddy(recommendation)}
                     onConnect={() =>
-                      handleConnect(recommendation.candidateId)
+                      handleConnect(recommendation.matchedUserId)
                     }
                     connectLabel={sendingRequest ? "Sending..." : "Send Request"}
                   />
@@ -393,7 +402,7 @@ export default function Recommendations() {
 
             <button
               className="find-buddy-connect-btn"
-              onClick={() => handleConnect(selectedBuddy.candidateId)}
+              onClick={() => handleConnect(selectedBuddy.matchedUserId)}
               disabled={sendingRequest}
             >
               {sendingRequest ? "Sending..." : "Send Request"}

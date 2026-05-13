@@ -25,6 +25,7 @@ async function isUserInMatchingList(creatorId, userId) {
     const query = `
       query {
         getRecommendations(userId: "${creatorId}", limit: 100) {
+          userId
           candidateId
           score
         }
@@ -50,7 +51,12 @@ async function isUserInMatchingList(creatorId, userId) {
 
     // Check if userId is in the recommendations
     const recommendations = data.data?.getRecommendations || [];
-    return recommendations.some((rec) => rec.candidateId === userId);
+    return recommendations.some((rec) => {
+      const matchedUserId =
+        rec.userId === creatorId ? rec.candidateId : rec.userId;
+
+      return matchedUserId === userId;
+    });
   } catch (error) {
     console.error("Error checking matching list:", error);
     throw new Error("Unable to verify if user is in matching list. Please try again later.");

@@ -52,6 +52,11 @@ const runConsumer = async () => {
     fromBeginning: false,
   });
 
+  await consumer.subscribe({
+    topic: "BuddyRequestResponded",
+    fromBeginning: false,
+  });
+
   await consumer.run({
     eachMessage: async ({ topic, message }) => {
       const event = JSON.parse(message.value.toString());
@@ -119,6 +124,20 @@ const runConsumer = async () => {
             },
           });
           break;
+
+        case "BuddyRequestResponded": {
+          const responseText =
+            event.payload.status === "ACCEPTED" ? "accepted" : "declined";
+
+          await prisma.notification.create({
+            data: {
+              userId: event.payload.fromUserId,
+              message: `User ${event.payload.toUserId} ${responseText} your buddy request.`,
+              type: "BUDDY_REQUEST_RESPONSE",
+            },
+          });
+          break;
+        }
 
         // case "SESSION_REMINDER":
         //   await prisma.notification.create({

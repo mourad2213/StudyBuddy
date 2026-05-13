@@ -53,6 +53,11 @@ export default function MatchDetailsPage() {
     },
   );
 
+  const [createConversation, { loading: creatingConversation }] = useMutation(
+    CREATE_CONVERSATION,
+    { context: { uri: MESSAGING_GRAPHQL } },
+  );
+
   const {
     data: profileData,
     loading: profileLoading,
@@ -115,34 +120,17 @@ export default function MatchDetailsPage() {
       setLoginPrompt("Log in and start your study journey");
       return;
     }
-    // Determine a usable username for the current user (mirror ChatApp logic)
-    const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
 
-    let currentUsername = localStorage.getItem("username");
-    if (!currentUsername) {
-      currentUsername =
-        storedUser.loginUsername || storedUser.actual_username || storedUser.username || "";
-    }
-
-    if (!currentUsername) {
-      // Fallback: try to find a non-system key in localStorage
-      const systemKeys = new Set(["token", "userId", "user", "cart", "favoriteColor"]);
-      const possible = Object.keys(localStorage).find(
-        (k) => !systemKeys.has(k) && k !== localStorage.getItem("userId")
-      );
-      currentUsername = possible || "";
-    }
-
-    const otherUsername = user?.name || "";
-      
-    if (!currentUsername || !otherUsername) {
+    if (!currentUserId || !userId) {
       setLoginPrompt("Unable to start chat right now.");
-      
       return;
     }
 
     createConversation({
-      variables: { participant1Id: currentUsername, participant2Id: otherUsername },
+      variables: {
+        participant1Id: currentUserId,
+        participant2Id: userId,
+      },
     })
       .then(() => {
         navigate("/chat");
@@ -159,11 +147,6 @@ export default function MatchDetailsPage() {
         alert("Unable to start chat right now.");
       });
   };
-
-  const [createConversation, { loading: creatingConversation }] = useMutation(
-    CREATE_CONVERSATION,
-    { context: { uri: MESSAGING_GRAPHQL } },
-  );
 
   if (isLoading) {
     return (

@@ -155,16 +155,39 @@ async function getUnavailableCandidateIds(userId) {
 export async function getRecommendations(userId, limit = 10) {
   const unavailableCandidateIds = await getUnavailableCandidateIds(userId);
 
-  return prisma.matchRecommendation.findMany({
+  const recommendations = await prisma.matchRecommendation.findMany({
     where: {
-      userId,
-      candidateId: {
-        not: userId,
-        notIn: unavailableCandidateIds,
-      },
+      OR: [
+        {
+          userId,
+          candidateId: {
+            not: userId,
+            notIn: unavailableCandidateIds,
+          },
+        },
+        {
+          candidateId: userId,
+          userId: {
+            not: userId,
+            notIn: unavailableCandidateIds,
+          },
+        },
+      ],
     },
     orderBy: [{ score: "desc" }, { createdAt: "desc" }],
     take: limit,
+  });
+
+  return recommendations.map((recommendation) => {
+    if (recommendation.userId === userId) {
+      return recommendation;
+    }
+
+    return {
+      ...recommendation,
+      userId,
+      candidateId: recommendation.userId,
+    };
   });
 }
 

@@ -33,6 +33,10 @@ export default function CreateSession() {
   }
 
   const userName = currentUserName === "Me" ? "" : currentUserName;
+
+  // Prefer the actual UUID stored in localStorage.userId (falls back to storedUser.id etc.)
+  const userId =
+    localStorage.getItem("userId") || storedUser.id || storedUser.userId || storedUser.uuid || "";
   const matchingServiceUrl =
     import.meta.env.VITE_MATCHING_SERVICE_URL ||
     "http://localhost:4003/graphql";
@@ -53,7 +57,7 @@ export default function CreateSession() {
   const [recommendedBuddies, setRecommendedBuddies] = useState([]);
 
   useEffect(() => {
-    if (!userName) {
+    if (!userId) {
       setRecommendedBuddies([]);
       return;
     }
@@ -73,7 +77,8 @@ export default function CreateSession() {
                 score
               }
             }`,
-            variables: { userId: userName, limit: 10 },
+            // use actual UUID when querying the matching service
+            variables: { userId: userName || userName, limit: 10 },
           }),
         });
 
@@ -82,17 +87,89 @@ export default function CreateSession() {
         // If recommendations API works, use those results
         if (result.data?.getRecommendations && !result.errors) {
           const recommendations = result.data.getRecommendations;
-          const mapped = recommendations.map((rec) => ({
-            userId: rec.userId,
-            candidateId: rec.candidateId,
-            // Show the OTHER person (whoever is not the current user)
-            name: rec.userId === userName ? rec.candidateId : rec.userId,
-            avatar: "👤",
-            score: rec.score,
-            availability: `Recommended match • score ${rec.score}`,
-          }));
+          const mapped = recommendations.map((rec) => {
+            const matchedUserId =
+              rec.userId === userName ? rec.candidateId : rec.userId;
+
+            return {
+              userId: rec.userId,
+              candidateId: rec.candidateId,
+              matchedUserId,
+              name: matchedUserId,
+              avatar: "👤",
+              score: rec.score,
+              availability: `Recommended match • score ${rec.score}`,
+            };
+          });
+          // Start with recommendations
+          let combined = mapped;
+
+          // Also fetch accepted connections and merge
+          try {
+            const connResp = await fetch(matchingServiceUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                query: `query GetConnections($userId: ID!) { getConnections(userId: $userId) { id fromUserId toUserId createdAt } }`,
+                variables: { userId: userId || userName },
+              }),
+            });
+
+            const connResult = await connResp.json();
+            if (!connResult.errors && Array.isArray(connResult.data?.getConnections)) {
+              const connections = connResult.data.getConnections;
+              const mappedConns = connections.map((c) => {
+                const matchedUserId = (c.fromUserId === (userId || userName)) ? c.toUserId : c.fromUserId;
+                return {
+                  id: c.id,
+                  fromUserId: c.fromUserId,
+                  toUserId: c.toUserId,
+                  matchedUserId,
+                  name: matchedUserId,
+                  avatar: "👥",
+                  score: 100,
+                  availability: "Connected",
+                };
+              });
+
+              // merge and dedupe by matchedUserId
+              const seen = new Set();
+              combined = [...combined, ...mappedConns].filter((b) => {
+                const key = (b.matchedUserId ?? b.candidateId ?? b.id ?? b.name).toString();
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+              });
+            }
+          } catch (err) {
+            console.warn("Failed to load connections:", err);
+          }
+
+          // Resolve display names by fetching user list from the user service
+          try {
+            const usersResp = await fetch(userServiceUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                query: `query GetAllUsers { getAllUsers { id name } }`,
+              }),
+            });
+
+            const usersResult = await usersResp.json();
+            const users = usersResult.data?.getAllUsers || [];
+            const userMap = new Map(users.map((u) => [u.id, u.name]));
+
+            combined = combined.map((b) => {
+              const key = (b.matchedUserId ?? b.candidateId ?? b.id ?? b.name).toString();
+              const display = userMap.get(key) || userMap.get(b.matchedUserId) || b.name;
+              return { ...b, name: display };
+            });
+          } catch (err) {
+            console.warn("Failed to resolve user names:", err);
+          }
+
           if (isActive) {
-            setRecommendedBuddies(mapped);
+            setRecommendedBuddies(combined);
           }
           return;
         }
@@ -122,7 +199,7 @@ export default function CreateSession() {
     return () => {
       isActive = false;
     };
-  }, [matchingServiceUrl, userName]);
+  }, [matchingServiceUrl, userId]);
 
   const buddyList = recommendedBuddies;
 
@@ -130,7 +207,7 @@ export default function CreateSession() {
     CREATE_STUDY_SESSION,
     {
       refetchQueries: [
-        { query: GET_UPCOMING_SESSIONS, variables: { userId: userName } },
+        { query: GET_UPCOMING_SESSIONS, variables: { userId: userId || userName } },
       ],
     }
   );
@@ -161,7 +238,7 @@ export default function CreateSession() {
   const [isBuddyDropdownOpen, setIsBuddyDropdownOpen] = useState(false);
 
   const getBuddyKey = (buddy) =>
-    (buddy?.candidateId ?? buddy?.id ?? buddy?.userId ?? buddy?.name ?? "").toString();
+    (buddy?.matchedUserId ?? buddy?.id ?? buddy?.name ?? "").toString();
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -249,7 +326,7 @@ export default function CreateSession() {
           creatorId: userName,
         contactInfo: "",
         possibleMemberIds: formData.selectedBuddies.map((b) =>
-          (b.candidateId ?? b.userId ?? b.id).toString()
+          (b.matchedUserId ?? b.id).toString()
         ),
       };
 

@@ -86,7 +86,15 @@ export const resolvers = {
     },
     createBuddyRequest: async (_, { fromUserId, toUserId }) => {
       try {
-        return await createBuddyRequest(fromUserId, toUserId);
+        const result = await createBuddyRequest(fromUserId, toUserId);
+
+        await produceEvent(MATCHING_EVENTS.BUDDY_REQUEST_CREATED, {
+          fromUserId,
+          toUserId,
+          status: result.status,
+        });
+
+        return result;
       } catch (error) {
         console.error("Error creating buddy request:", error);
         throw new Error("Failed to create buddy request");
@@ -94,7 +102,15 @@ export const resolvers = {
     },
     acceptBuddyRequest: async (_, { fromUserId, toUserId }) => {
       try {
-        return await updateBuddyRequestStatus(fromUserId, toUserId, "ACCEPTED");
+        const result = await updateBuddyRequestStatus(fromUserId, toUserId, "ACCEPTED");
+
+        await produceEvent(MATCHING_EVENTS.BUDDY_REQUEST_RESPONDED, {
+          fromUserId,
+          toUserId,
+          status: result.status,
+        });
+
+        return result;
       } catch (error) {
         console.error("Error accepting buddy request:", error);
         throw new Error("Failed to accept buddy request");
@@ -102,7 +118,15 @@ export const resolvers = {
     },
     rejectBuddyRequest: async (_, { fromUserId, toUserId }) => {
       try {
-        return await updateBuddyRequestStatus(fromUserId, toUserId, "REJECTED");
+        const result = await updateBuddyRequestStatus(fromUserId, toUserId, "REJECTED");
+
+        await produceEvent(MATCHING_EVENTS.BUDDY_REQUEST_RESPONDED, {
+          fromUserId,
+          toUserId,
+          status: result.status,
+        });
+
+        return result;
       } catch (error) {
         console.error("Error rejecting buddy request:", error);
         throw new Error("Failed to reject buddy request");

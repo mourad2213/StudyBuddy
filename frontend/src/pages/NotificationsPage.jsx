@@ -16,7 +16,7 @@ import { RESPOND_TO_SESSION_INVITATION } from "../graphql/mutations/sessions";
 import notificationArrow from "../assets/notification-arrow.png";
 import "../App.css";
 export default function NotificationsPage() {
-  const currentUserId = localStorage.getItem("username");
+  const currentUserId = localStorage.getItem("userid");
 
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -120,6 +120,10 @@ export default function NotificationsPage() {
   const readNotifications = filteredNotifications.filter(
     (notification) => notification.isRead
   );
+
+  // Check if there are any notifications at all
+  const hasAnyNotifications = notifications.length > 0;
+  const isFilteredBySearch = searchTerm && filteredNotifications.length === 0 && hasAnyNotifications;
 
   const handleMarkAsRead = async (notificationId) => {
     try {
@@ -282,8 +286,10 @@ export default function NotificationsPage() {
       )}
 
       <section className="notifications-panel">
-        {filteredNotifications.length === 0 ? (
+        {filteredNotifications.length === 0 && !hasAnyNotifications ? (
           <p className="notifications-empty">You're all caught up! ✓</p>
+        ) : filteredNotifications.length === 0 && isFilteredBySearch ? (
+          <p className="notifications-empty">No notifications match "{searchTerm}"</p>
         ) : (
           <>
             <h3 className="notifications-section-title">New!</h3>
