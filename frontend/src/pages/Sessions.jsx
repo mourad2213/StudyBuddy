@@ -1,6 +1,7 @@
 import { useQuery } from "@apollo/client/react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import API_CONFIG from "../config/api";
 import {
   Clock3,
   Monitor,

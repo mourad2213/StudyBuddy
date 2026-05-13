@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@apollo/client/react";
 import popupBg from "../assets/add-availability-bg.png";
+import API_CONFIG from "../config/api";
 import { GET_AVAILABILITY } from "../graphql/queries/availability";
 import {
   CREATE_AVAILABILITY,
@@ -17,7 +18,7 @@ const DAYS = [
   { value: 3, label: "Thursday" },
   { value: 4, label: "Friday" },
 ];
-const AVAILABILITY_GRAPHQL = "http://localhost:4002/graphql";
+const AVAILABILITY_GRAPHQL = API_CONFIG.MATCHING_SERVICE;
 // function addOneHour(time) {
 //   const [hours, minutes] = time.split(":").map(Number);
 //   const newHours = (hours + 1).toString().padStart(2, "0");

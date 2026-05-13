@@ -1,8 +1,9 @@
 import { useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";  // ← merge into one import
+import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@apollo/client/react";
 import { Bell, CalendarDays, MessageSquare, Users, Plus, Mail, MapPin, Monitor } from "lucide-react";
 import BuddyCard from "../components/BuddyCard";
+import API_CONFIG from "../config/api";
 import { GET_ALL_USERS } from "../graphql/queries/user";
 import { GET_ALL_PROFILES, GET_PROFILE } from "../graphql/queries/profiles";
 import { GET_UPCOMING_SESSIONS } from "../graphql/queries";
@@ -77,7 +78,7 @@ export default function Dashboard() {
     skip: !currentUserId,
     fetchPolicy: "cache-and-network",
     context: {
-      uri: "http://localhost:4003/",
+      uri: API_CONFIG.MATCHING_SERVICE,
       headers: {
         authorization: token ? `Bearer ${token}` : "",
         Authorization: token ? `Bearer ${token}` : "",
@@ -99,30 +100,30 @@ export default function Dashboard() {
 
   const { data: usersData, loading: usersLoading, error: usersError } = useQuery(GET_ALL_USERS, {
     fetchPolicy: "cache-and-network",
-    context: { uri: "http://localhost:4001/graphql" },
+    context: { uri: API_CONFIG.USER_SERVICE },
   });
 
   const { data: profilesData, loading: profilesLoading, error: profilesError } = useQuery(GET_ALL_PROFILES, {
     fetchPolicy: "cache-and-network",
-    context: { uri: "http://localhost:4006/graphql" },
+    context: { uri: API_CONFIG.PROFILE_SERVICE },
   });
 
   const { data: upcomingData, loading: upcomingLoading, error: upcomingError } = useQuery(GET_UPCOMING_SESSIONS, {
     skip: !sessionUserId,
     variables: { userId: sessionUserId },
     fetchPolicy: "cache-and-network",
-    context: { uri: "http://localhost:4007/graphql" },
+    context: { uri: API_CONFIG.SESSION_SERVICE },
   });
 
   const { data: notificationsData, loading: notificationsLoading } = useQuery(GET_NOTIFICATIONS, {
     skip: !currentUserId,
     variables: { userId: currentUserId },
     fetchPolicy: "cache-and-network",
-    context: { uri: "http://localhost:4005/graphql" },
+    context: { uri: API_CONFIG.NOTIFICATION_SERVICE },
   });
 
   const [createBuddyRequest] = useMutation(CREATE_BUDDY_REQUEST, {
-    context: { uri: "http://localhost:4003/graphql" },
+    context: { uri: API_CONFIG.MATCHING_SERVICE },
   });
 
   

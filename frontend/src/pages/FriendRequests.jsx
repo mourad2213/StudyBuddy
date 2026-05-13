@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "@apollo/client/react";
+import API_CONFIG from "../config/api";
 import {
   ACCEPT_BUDDY_REQUEST,
   GET_CONNECTIONS,
@@ -11,8 +12,8 @@ import { GET_ALL_USERS } from "../graphql/queries/user";
 import { GET_ALL_PROFILES } from "../graphql/queries/profiles";
 import "./FriendRequests.css";
 
-const MATCHING_GRAPHQL = "http://localhost:4003/graphql";
-const PROFILE_GRAPHQL = "http://localhost:4006/graphql";
+const MATCHING_GRAPHQL = API_CONFIG.MATCHING_SERVICE;
+const PROFILE_GRAPHQL = API_CONFIG.PROFILE_SERVICE;
 
 const TABS = [
   { id: "requests", label: "Requests" },

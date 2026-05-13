@@ -19,7 +19,7 @@ import {
 
 dotenv.config();
 
-const PORT = process.env.PORT || 4004;
+const PORT = process.env.PORT || 4003;
 
 async function cacheUserData(userId, data) {
   return prisma.cachedUserData.upsert({

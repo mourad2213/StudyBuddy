@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery } from "@apollo/client/react";
+import API_CONFIG from "../config/api";
 import { GET_ALL_USERS } from "../graphql/queries/user";
 import { GET_PROFILE } from "../graphql/queries/profiles";
 import { CREATE_CONVERSATION } from "../graphql/mutations";
 import { CREATE_BUDDY_REQUEST } from "../graphql/queries/buddyRequests";
 import "./MatchDetailsPage.css";
 
-const PROFILE_GRAPHQL = "http://localhost:4006/graphql";
-const MATCHING_GRAPHQL = "http://localhost:4003/graphql";
-const MESSAGING_GRAPHQL = "http://localhost:4008/graphql";
+const PROFILE_GRAPHQL = API_CONFIG.PROFILE_SERVICE;
+const MATCHING_GRAPHQL = API_CONFIG.MATCHING_SERVICE;
+const MESSAGING_GRAPHQL = API_CONFIG.MESSAGING_SERVICE;
 const AVATAR_POOL = [
   "/avatar-fadi.svg",
   "/avatar-sofyan.svg",

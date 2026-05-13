@@ -3,11 +3,12 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@apollo/client/react";
 import WhyCard from "../components/WhyCard";
 import BuddyCard from "../components/BuddyCard";
+import API_CONFIG from "../config/api";
 import { GET_ALL_USERS } from "../graphql/queries/user";
 import { GET_ALL_PROFILES } from "../graphql/queries/profiles";
 import "./LandingPage.css";
 
-const PROFILE_GRAPHQL = "http://localhost:4006/graphql";
+const PROFILE_GRAPHQL = API_CONFIG.PROFILE_SERVICE;
 const AVATAR_POOL = [
   "/avatar-fadi.svg",
   "/avatar-sofyan.svg",

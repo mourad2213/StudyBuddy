@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useLazyQuery } from "@apollo/client/react";
+import API_CONFIG from "../../config/api";
 import { GET_PAST_SESSIONS, GET_UPCOMING_SESSIONS } from "../../graphql/queries";
 
 import {
@@ -132,7 +133,7 @@ export default function NotificationItem({
   ] = useLazyQuery(GET_SESSION_BY_ID, {
     fetchPolicy: "network-only",
     context: {
-      uri: "http://localhost:4007/graphql",
+      uri: API_CONFIG.SESSION_SERVICE,
     },
   });
   const [
@@ -141,7 +142,7 @@ export default function NotificationItem({
   ] = useLazyQuery(GET_PENDING_INVITATIONS, {
     fetchPolicy: "network-only",
     context: {
-      uri: "http://localhost:4007/graphql",
+      uri: API_CONFIG.SESSION_SERVICE,
     },
   });
   const [
@@ -150,19 +151,19 @@ export default function NotificationItem({
   ] = useLazyQuery(GET_SESSION_ACCEPTED_MEMBERS, {
     fetchPolicy: "network-only",
     context: {
-      uri: "http://localhost:4007/graphql",
+      uri: API_CONFIG.SESSION_SERVICE,
     },
   });
   const [loadUpcomingSessions] = useLazyQuery(GET_UPCOMING_SESSIONS, {
     fetchPolicy: "network-only",
     context: {
-      uri: "http://localhost:4007/graphql",
+      uri: API_CONFIG.SESSION_SERVICE,
     },
   });
   const [loadPastSessions] = useLazyQuery(GET_PAST_SESSIONS, {
     fetchPolicy: "network-only",
     context: {
-      uri: "http://localhost:4007/graphql",
+      uri: API_CONFIG.SESSION_SERVICE,
     },
   });
 

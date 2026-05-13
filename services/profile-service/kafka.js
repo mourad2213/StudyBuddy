@@ -121,4 +121,16 @@ async function sendEvent(eventName, payload) {
   console.log("📤 Event sent to Kafka:", eventName);
 }
 
-module.exports = { kafka, producer, connectProducer, disconnectProducer, sendEvent };
+// ============================================
+// DISCONNECT PRODUCER
+// ============================================
+async function disconnectKafka() {
+  try {
+    await producer.disconnect();
+    console.log("✅ Kafka Producer Disconnected");
+  } catch (err) {
+    console.error("❌ Error disconnecting Kafka producer:", err);
+  }
+}
+
+module.exports = { kafka, producer, connectKafka, disconnectKafka, sendEvent };

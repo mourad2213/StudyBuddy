@@ -1,6 +1,7 @@
 ﻿import { useEffect, useState } from "react";
 import { useMutation } from "@apollo/client/react";
 import { useNavigate } from "react-router-dom";
+import API_CONFIG from "../config/api";
 import { CREATE_STUDY_SESSION } from "../graphql/mutations";
 import { GET_UPCOMING_SESSIONS } from "../graphql/queries";
 import "./CreateSession.css";
@@ -39,12 +40,8 @@ export default function CreateSession() {
 
   const userId =
     localStorage.getItem("userId") || storedUser.id || storedUser.userId || storedUser.uuid || "";
-  const matchingServiceUrl =
-    import.meta.env.VITE_MATCHING_SERVICE_URL ||
-    "http://localhost:4003/graphql";
-  const userServiceUrl =
-    import.meta.env.VITE_USER_SERVICE_URL ||
-    "http://localhost:4001/graphql";
+  const matchingServiceUrl = API_CONFIG.MATCHING_SERVICE;
+  const userServiceUrl = API_CONFIG.USER_SERVICE;
 
   const [formData, setFormData] = useState({
     topic: "",
