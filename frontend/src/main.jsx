@@ -29,9 +29,9 @@ const userServiceUrl = import.meta.env.VITE_USER_URL || "http://localhost:4001/g
 const profileServiceUrl = import.meta.env.VITE_PROFILE_URL || "http://localhost:4006/graphql";
 const sessionServiceUrl = import.meta.env.VITE_SESSION_URL || "http://localhost:4007/graphql";
 const notificationServiceUrl = import.meta.env.VITE_NOTIFICATION_URL || "http://localhost:4005/graphql";
-const matchingServiceUrl = import.meta.env.VITE_MATCHING_URL || "http://localhost:4002/graphql";
-const messagingServiceUrl = import.meta.env.VITE_MESSAGING_URL || "http://localhost:4003/graphql";
-const availabilityServiceUrl = import.meta.env.VITE_AVAILABILITY_URL || "http://localhost:4004/graphql";
+const matchingServiceUrl = import.meta.env.VITE_MATCHING_URL || "http://localhost:4003/graphql";
+const messagingServiceUrl = import.meta.env.VITE_MESSAGING_URL || "http://localhost:4008/graphql";
+const availabilityServiceUrl = import.meta.env.VITE_AVAILABILITY_URL || "http://localhost:4002/graphql";
 
 console.log("🔍 RESOLVED SERVICE URLS:");
 console.log("User:", userServiceUrl);
