@@ -207,7 +207,7 @@ export default function CreateSession() {
     CREATE_STUDY_SESSION,
     {
       refetchQueries: [
-        { query: GET_UPCOMING_SESSIONS, variables: { userId: userId || userName } },
+        { query: GET_UPCOMING_SESSIONS, variables: { userId } },
       ],
     }
   );
@@ -323,7 +323,7 @@ export default function CreateSession() {
         location: formData.sessionType === "In-person" ? formData.room : null,
         dateTime,
         durationMins: Number(formData.duration),
-          creatorId: userName,
+        creatorId: userId,
         contactInfo: "",
         possibleMemberIds: formData.selectedBuddies.map((b) =>
           (b.matchedUserId ?? b.id).toString()
