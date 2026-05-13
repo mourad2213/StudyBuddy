@@ -128,6 +128,11 @@ const runConsumer = async () => {
     fromBeginning: false,
   });
 
+  await consumer.subscribe({
+    topic: "BuddyRequestResponded",
+    fromBeginning: false,
+  });
+
   // ======================
   // CONSUMER LOOP
   // ======================
@@ -167,15 +172,23 @@ const runConsumer = async () => {
             });
             break;
 
-          case "SESSION_INVITATION_RECEIVED":
-            await prisma.notification.create({
+        case "SESSION_INVITATION_RECEIVED":
+          console.debug("kafka: SESSION_INVITATION_RECEIVED payload", event.payload);
+          try {
+            const created = await prisma.notification.create({
               data: {
                 userId: event.payload.userId,
-                message: "You received a session invitation.",
+                message: event.payload.sessionId 
+                  ? `[SESSION_ID:${event.payload.sessionId}] You received a session invitation.`
+                  : "You received a session invitation.",
                 type: "SESSION_INVITATION_RECEIVED",
               },
             });
-            break;
+            console.debug("kafka: created notification", { id: created.id, userId: created.userId, type: created.type });
+          } catch (err) {
+            console.error("kafka: failed creating SESSION_INVITATION_RECEIVED notification", { err, payload: event.payload });
+          }
+          break;
 
           case "RecommendationsGenerated":
             await prisma.notification.create({
@@ -198,26 +211,32 @@ const runConsumer = async () => {
             });
             break;
 
-          case "MessageSent": {
-            const recipient =
-              event.payload.recipientId ||
-              event.payload.otherParticipant;
+        // case "SESSION_REMINDER":
+        //   await prisma.notification.create({
+        //     data: {
+        //       userId: event.payload.userId,
+        //       message: "Reminder: You have an upcoming study session.",
+        //       type: "SESSION_REMINDER",
+        //     },
+        //   });
+        //   break;
 
-            if (recipient) {
-              await prisma.notification.create({
-                data: {
-                  userId: recipient,
-                  message: `New message from ${
-                    event.payload.senderName || "a study buddy"
-                  }: ${event.payload.content?.substring(0, 50) || "New message"}${
-                    event.payload.content?.length > 50 ? "..." : ""
-                  }`,
-                  type: "MESSAGE_SENT",
-                },
-              });
-            }
-            break;
+        case "MessageSent":
+          // Notify recipient of new message
+          const recipient = event.payload.conversationId ? 
+            (event.payload.recipientId || event.payload.otherParticipant) : 
+            null;
+          
+          if (recipient) {
+            await prisma.notification.create({
+              data: {
+                userId: recipient,
+                message: `New message from ${event.payload.senderName || "a study buddy"}: ${event.payload.content?.substring(0, 50) || "New message"}${event.payload.content?.length > 50 ? "..." : ""}`,
+                type: "MESSAGE_SENT",
+              },
+            });
           }
+          break;
 
           case "ConversationCreated":
             if (event.payload.participant1Id) {
@@ -243,25 +262,29 @@ const runConsumer = async () => {
             }
             break;
 
-          case "StudySessionCreated":
-            if (
-              Array.isArray(event.payload.possibleMemberIds)
-            ) {
-              await Promise.all(
-                event.payload.possibleMemberIds
-                  .filter((id) => id !== event.payload.creatorId)
-                  .map((memberId) =>
-                    prisma.notification.create({
-                      data: {
-                        userId: memberId,
-                        message: `You've been invited to join a study session: "${event.payload.topic}"`,
-                        type: "SESSION_INVITATION_RECEIVED",
-                      },
-                    })
-                  )
+        case "StudySessionCreated":
+          // Notify all invited members about the session invitation
+          if (event.payload.possibleMemberIds && Array.isArray(event.payload.possibleMemberIds)) {
+            const invitationPromises = event.payload.possibleMemberIds
+              .filter((memberId) => memberId !== event.payload.creatorId) // Don't notify the creator
+              .map((memberId) =>
+                prisma.notification.create({
+                  data: {
+                    userId: memberId,
+                    message: `You've been invited to join a study session: "${event.payload.topic}"`,
+                    type: "SESSION_INVITATION_RECEIVED",
+                  },
+                })
               );
+            
+            try {
+              await Promise.all(invitationPromises);
+              console.log(`✅ Created ${invitationPromises.length} session invitation notifications`);
+            } catch (err) {
+              console.error("Error creating session invitation notifications:", err);
             }
-            break;
+          }
+          break;
 
           case "InvitationResponded":
             if (event.payload.creatorId) {

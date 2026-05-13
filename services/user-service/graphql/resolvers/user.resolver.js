@@ -18,6 +18,19 @@ export const userResolvers = {
         where: { id: decoded.userId },
       });
     },
+    // Unrestricted listing used by the landing page (no auth required).
+    getAllUsers: async () => {
+      return prisma.user.findMany({
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          university: true,
+          year: true,
+          createdAt: true,
+        },
+      });
+    },
   },
 
   Mutation: {

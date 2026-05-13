@@ -89,46 +89,36 @@ async function connectKafka() {
 // SEND EVENT
 // ============================================
 async function sendEvent(eventName, payload) {
-  try {
-    const message = {
-      event: eventName,
-      timestamp: new Date().toISOString(),
-      service: "profile-service",
-      payload,
-    };
+  const message = {
+    eventName,
+    event: eventName, // keep this for services that use "event"
+    timestamp: new Date().toISOString(),
+    service: "profile-service",
+    producerService: "profile-service",
+    correlationId: payload.userId || "system",
+    payload,
+  };
 
-    await producer.send({
-      topic: "study-events",
-      messages: [
-        {
-          key: payload.userId || "profile-event",
-          value: JSON.stringify(message),
-          headers: {
-            "content-type": "application/json",
-            service: "profile-service",
-          },
-        },
-      ],
-    });
+  // Send to the specific topic matching-service listens to
+  await producer.send({
+    topic: eventName,
+    messages: [
+      {
+        value: JSON.stringify(message),
+      },
+    ],
+  });
 
-    console.log("📤 Event sent to Kafka:", eventName);
-    return message;
-  } catch (err) {
-    console.error("❌ Error sending Kafka event:", err.message);
-    throw err;
-  }
-}
-
-// ============================================
-// DISCONNECTION
-// ============================================
-async function disconnectKafka() {
-  try {
-    await producer.disconnect();
-    console.log("✅ Kafka Producer Disconnected");
-  } catch (err) {
-    console.error("Error disconnecting producer:", err.message);
-  }
+  // Also keep sending to study-events for notification/messaging services
+  await producer.send({
+    topic: "study-events",
+    messages: [
+      {
+        value: JSON.stringify(message),
+      },
+    ],
+  });
+  console.log("📤 Event sent to Kafka:", eventName);
 }
 
 module.exports = { kafka, producer, connectKafka, disconnectKafka, sendEvent };

@@ -36,3 +36,23 @@ model CachedUserData {
 
   @@map("cached_user_data")
 }
+
+enum BuddyRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model BuddyRequest {
+  id         String             @id @default(uuid())
+  fromUserId String             @map("from_user_id")
+  toUserId   String             @map("to_user_id")
+  status     BuddyRequestStatus @default(PENDING)
+  createdAt  DateTime           @default(now()) @map("created_at")
+  updatedAt  DateTime           @updatedAt @map("updated_at")
+
+  @@unique([fromUserId, toUserId])
+  @@index([fromUserId])
+  @@index([toUserId])
+  @@map("buddy_request")
+}

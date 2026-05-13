@@ -1,0 +1,129 @@
+.footer {
+  background: linear-gradient(180deg, #8ca7bf 0%, #6f89a1 100%);
+  margin-top: 0;
+  position: relative;
+  color: #f5f7fb;
+  padding-top: 60px;
+  overflow: hidden;
+}
+
+.footer::before {
+  content: "";
+  position: absolute;
+  top: -80px;
+  left: 0;
+  right: 0;
+  height: 80px;
+  background: url("/footer-waves.svg") no-repeat center bottom;
+  background-size: cover;
+}
+
+.footer-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.8rem 2rem 2.2rem;
+
+  width: 100%;
+  max-width: 1120px;
+
+  margin: 0 auto;
+  box-sizing: border-box;
+
+  position: relative;
+  z-index: 1;
+}
+
+.footer-left {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex: 1;
+  gap: 1rem;
+}
+
+.footer-home-link {
+  color: #f5f7fb;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.footer-home-link:hover {
+  text-decoration: underline;
+}
+
+.footer-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+}
+
+.footer-logo {
+  height: 40px;
+  width: auto;
+  display: block;
+  filter: brightness(0) invert(1);
+}
+
+.footer-copyright {
+  color: #f5f7fb;
+  font-size: 0.9rem;
+  margin: 0;
+  letter-spacing: 0.5px;
+}
+
+.footer-social {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 1;
+}
+
+.social-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 40px;
+  height: 40px;
+
+  border-radius: 50%;
+
+  background-color: rgba(255, 255, 255, 0.18);
+  color: #f5f7fb;
+
+  transition: all 0.3s ease;
+  text-decoration: none;
+}
+
+.social-icon:hover {
+  background-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+  .footer-content {
+    flex-direction: column;
+    gap: 1.5rem;
+    text-align: center;
+  }
+
+  .footer-left {
+    justify-content: center;
+  }
+
+  .footer-center {
+    justify-content: center;
+  }
+
+  .footer-social {
+    justify-content: center;
+    gap: 1rem;
+  }
+
+  .footer-copyright {
+    font-size: 0.8rem;
+  }
+}

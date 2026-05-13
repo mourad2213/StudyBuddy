@@ -69,6 +69,7 @@ export const MATCHING_EVENTS = {
   AVAILABILITY_UPDATED: 'AvailabilityUpdated',
   AVAILABILITY_DELETED: 'AvailabilityDeleted',
   BUDDY_REQUEST_CREATED: 'BuddyRequestCreated',
+  BUDDY_REQUEST_RESPONDED: 'BuddyRequestResponded',
   MATCH_FOUND: 'MatchFound',
   RECOMMENDATIONS_GENERATED: 'RecommendationsGenerated',
 };
@@ -169,14 +170,34 @@ export async function subscribeToEvents() {
   ];
 
   for (const topic of topics) {
-    try {
-      await consumer.subscribe({ topic, fromBeginning: false });
-      console.log(`✅ Subscribed to: ${topic}`);
-    } catch (err) {
-      console.error(`❌ Failed to subscribe to topic "${topic}":`, err.message);
+    let retries = 10;
+
+    while (retries > 0) {
+      try {
+        await consumer.subscribe({
+          topic,
+          fromBeginning: false,
+        });
+
+        console.log(`Subscribed to topic: ${topic}`);
+        break;
+      } catch (error) {
+        retries--;
+
+        console.log(
+          `Kafka topic ${topic} not ready yet. Retrying... (${retries} left)`
+        );
+
+        if (retries === 0) {
+          throw error;
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+      }
     }
   }
-  console.log('✅ Matching service subscribed to events');
+
+  console.log("Matching service subscribed to events");
 }
 
 // ============================================
