@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation } from "@apollo/client/react";
 import { useNavigate } from "react-router-dom";
-
+import API_CONFIG from "../config/api";
 import BuddyCard from "../components/BuddyCard";
 import { GET_RECOMMENDATIONS } from "../graphql/queries/matching";
 import {
@@ -11,9 +11,9 @@ import {
 import { GET_ALL_PROFILES } from "../graphql/queries/profiles";
 import { GET_ALL_USERS } from "../graphql/queries/user";
 
-const MATCHING_GRAPHQL = "http://localhost:4003/";
-const PROFILE_GRAPHQL = "http://localhost:4006/graphql";
-const USER_GRAPHQL = "http://localhost:4001/graphql";
+const MATCHING_GRAPHQL = API_CONFIG.MATCHING_SERVICE;
+const PROFILE_GRAPHQL = API_CONFIG.PROFILE_SERVICE;
+const USER_GRAPHQL = API_CONFIG.USER_SERVICE;
 
 const fallbackAvatars = [
   "/avatar-tala.svg",

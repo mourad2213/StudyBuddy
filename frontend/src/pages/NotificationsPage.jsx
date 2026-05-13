@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation } from "@apollo/client/react";
-
+import API_CONFIG from "../config/api";
 import NotificationItem from "../components/notifications/NotificationItem";
 
 import { GET_NOTIFICATIONS } from "../graphql/queries/notifications";
@@ -31,7 +31,7 @@ export default function NotificationsPage() {
     fetchPolicy: "cache-and-network",
     pollInterval: 30000,
     context: {
-      uri: "http://localhost:4005/graphql",
+      uri: API_CONFIG.NOTIFICATION_SERVICE,
     },
   });
 
@@ -43,14 +43,14 @@ export default function NotificationsPage() {
       fetchPolicy: "cache-and-network",
       pollInterval: 30000,
       context: {
-        uri: "http://localhost:4007/graphql",
+        uri: API_CONFIG.SESSION_SERVICE,
       },
     }
   );
 
   const [markAsRead] = useMutation(MARK_AS_READ, {
     context: {
-      uri: "http://localhost:4005/graphql",
+      uri: API_CONFIG.NOTIFICATION_SERVICE,
     },
   });
 
@@ -58,26 +58,26 @@ export default function NotificationsPage() {
     MARK_ALL_AS_READ,
     {
       context: {
-        uri: "http://localhost:4005/graphql",
+        uri: API_CONFIG.NOTIFICATION_SERVICE,
       },
     }
   );
 
   const [deleteNotification] = useMutation(DELETE_NOTIFICATION, {
     context: {
-      uri: "http://localhost:4005/graphql",
+      uri: API_CONFIG.NOTIFICATION_SERVICE,
     },
   });
 
   const [updateNotificationMessage] = useMutation(UPDATE_NOTIFICATION_MESSAGE, {
     context: {
-      uri: "http://localhost:4005/graphql",
+      uri: API_CONFIG.NOTIFICATION_SERVICE,
     },
   });
 
   const [respondToInvitation] = useMutation(RESPOND_TO_SESSION_INVITATION, {
     context: {
-      uri: "http://localhost:4007/graphql",
+      uri: API_CONFIG.SESSION_SERVICE,
     },
   });
 

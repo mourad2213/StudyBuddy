@@ -1,4 +1,5 @@
 import { useQuery } from "@apollo/client/react";
+import API_CONFIG from "../../config/api";
 import { GET_UNREAD_COUNT } from "../../graphql/queries/notifications";
 
 export default function NotificationBadge({ userId }) {
@@ -7,7 +8,7 @@ export default function NotificationBadge({ userId }) {
     skip: !userId,
     pollInterval: 30000,
     context: {
-      uri: "http://localhost:4005/graphql",
+      uri: API_CONFIG.NOTIFICATION_SERVICE,
     },
   });
 

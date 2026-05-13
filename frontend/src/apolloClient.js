@@ -4,6 +4,7 @@ import {
   ApolloLink,
   HttpLink,
 } from "@apollo/client";
+import API_CONFIG from "./config/api";
 
 const authLink = new ApolloLink((operation, forward) => {
   const token =
@@ -24,7 +25,7 @@ const authLink = new ApolloLink((operation, forward) => {
 });
 
 const dynamicHttpLink = new ApolloLink((operation) => {
-  const uri = operation.getContext().uri || "http://localhost:4001/graphql";
+  const uri = operation.getContext().uri || API_CONFIG.USER_SERVICE;
   const httpLink = new HttpLink({ uri });
   return httpLink.request(operation);
 });

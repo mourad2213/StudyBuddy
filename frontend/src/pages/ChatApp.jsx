@@ -1,12 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import "./ChatApp.css";
+import API_CONFIG from "../config/api";
 
-const messagingServiceUrl =
-  import.meta.env.VITE_MESSAGING_SERVICE_URL || "http://localhost:4008/graphql";
-const matchingServiceUrl =
-  import.meta.env.VITE_MATCHING_SERVICE_URL || "http://localhost:4003/graphql";
-const userServiceUrl =
-  import.meta.env.VITE_USER_SERVICE_URL || "http://localhost:4001/graphql";
+const messagingServiceUrl = API_CONFIG.MESSAGING_SERVICE;
+const matchingServiceUrl = API_CONFIG.MATCHING_SERVICE;
+const userServiceUrl = API_CONFIG.USER_SERVICE;
 
 const GET_CONVERSATIONS_QUERY = `
   query GetConversations($userId: String!) {
