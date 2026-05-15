@@ -1,97 +1,208 @@
-import { Kafka } from "kafkajs";
+import { Kafka, logLevel } from "kafkajs";
 
-const kafka = new Kafka({
+// ==============================
+// VALIDATE & CONFIGURE KAFKA
+// ==============================
+const validateKafkaConfig = () => {
+  // Support both KAFKA_BROKERS and KAFKA_BROKER for backwards compatibility
+  const brokers = (process.env.KAFKA_BROKERS || process.env.KAFKA_BROKER)?.trim();
+  const username = process.env.KAFKA_USERNAME?.trim();
+  const password = process.env.KAFKA_PASSWORD?.trim();
+
+  if (!brokers) {
+    throw new Error(
+      "KAFKA_BROKERS (or KAFKA_BROKER) environment variable is required (comma-separated: host1:9092,host2:9092)"
+    );
+  }
+
+  return { brokers, username, password };
+};
+
+const { brokers: brokerString, username, password } = validateKafkaConfig();
+const brokers = brokerString
+  .split(",")
+  .map((b) => b.trim())
+  .filter(Boolean);
+
+if (brokers.length === 0) {
+  throw new Error("No valid brokers found after parsing KAFKA_BROKERS");
+}
+
+// Build Kafka config - support both Aiven (with SASL/SSL) and local Confluent Kafka
+const kafkaConfig = {
   clientId: "messaging-service",
-  brokers: [process.env.KAFKA_BROKER || "kafka:29092"],
+  brokers,
+  logLevel: logLevel.INFO,
+  // Retry configuration
+  retry: {
+    initialRetryTime: 300,
+    retries: 8,
+    maxRetryTime: 30000,
+    multiplier: 2,
+  },
+};
+
+// Only add SASL/SSL if credentials are provided (Aiven Kafka)
+if (username && password) {
+  kafkaConfig.ssl = true;
+  kafkaConfig.sasl = {
+    mechanism: "plain",
+    username,
+    password,
+  };
+}
+
+// ==============================
+// KAFKA CLIENT (LOCAL OR AIVEN)
+// ==============================
+const kafka = new Kafka(kafkaConfig);
+
+// ==============================
+// PRODUCER + CONSUMER
+// ==============================
+const producer = kafka.producer();
+const consumer = kafka.consumer({
+  groupId: "messaging-service-group",
 });
 
-const producer = kafka.producer();
-const consumer = kafka.consumer({ groupId: "messaging-service-group" });
-
+// ==============================
+// CONNECT PRODUCER
+// ==============================
 export async function connectProducer() {
   let retries = 10;
+
   while (retries > 0) {
     try {
       await producer.connect();
-      console.log("✅ Kafka Producer Connected");
-      break;
+      console.log("✅ Kafka Producer Connected (messaging-service)");
+      return;
     } catch (err) {
       retries--;
+
       console.log(
-        `⏳ Kafka Producer not ready, retrying in 5s... (${retries} retries left)`
+        `⏳ Producer not ready, retrying in 5s... (${retries} retries left)`
       );
+      console.error(err.message);
+
       await new Promise((res) => setTimeout(res, 5000));
+
       if (retries === 0) {
-        console.error("❌ Could not connect to Kafka Producer after multiple retries");
-        return;
+        console.error("❌ Producer failed to connect to Kafka after retries");
+        throw new Error("Failed to connect Kafka producer");
       }
     }
   }
 }
 
+// ==============================
+// CONNECT CONSUMER
+// ==============================
 export async function connectConsumer() {
   let retries = 10;
+
   while (retries > 0) {
     try {
       await consumer.connect();
-      console.log("✅ Kafka Consumer Connected");
-      break;
+      console.log("✅ Kafka Consumer Connected (messaging-service)");
+      return;
     } catch (err) {
       retries--;
+
       console.log(
-        `⏳ Kafka Consumer not ready, retrying in 5s... (${retries} retries left)`
+        `⏳ Consumer not ready, retrying in 5s... (${retries} retries left)`
       );
+      console.error(err.message);
+
       await new Promise((res) => setTimeout(res, 5000));
+
       if (retries === 0) {
-        console.error("❌ Could not connect to Kafka Consumer after multiple retries");
-        return;
+        console.error("❌ Consumer failed to connect to Kafka after retries");
+        throw new Error("Failed to connect Kafka consumer");
       }
     }
   }
 }
 
+// ==============================
+// SUBSCRIBE TO EVENTS
+// ==============================
 export async function subscribeToEvents(callback) {
-  await consumer.subscribe({ topic: "study-events", fromBeginning: false });
-  await consumer.subscribe({ topic: "BuddyRequestCreated", fromBeginning: true });
+  await consumer.subscribe({
+    topic: "study-events",
+    fromBeginning: false,
+  });
+
+  await consumer.subscribe({
+    topic: "BuddyRequestCreated",
+    fromBeginning: false,
+  });
 
   await consumer.run({
-    eachMessage: async ({ topic, partition, message }) => {
+    eachMessage: async ({ topic, message }) => {
       try {
         const event = JSON.parse(message.value.toString());
-        console.log("📨 Message from Kafka:", event);
+
+        console.log(`📩 Kafka message from ${topic}:`, event);
+
         await callback(event);
       } catch (err) {
-        console.error("Error processing Kafka message:", err);
+        console.error("❌ Kafka message processing error:", err.message);
       }
     },
   });
 }
 
+// ==============================
+// SEND EVENT
+// ==============================
 export async function sendEvent(eventName, payload) {
   try {
+    const message = {
+      event: eventName,
+      timestamp: new Date().toISOString(),
+      service: "messaging-service",
+      payload,
+    };
+
     await producer.send({
       topic: "study-events",
       messages: [
         {
-          value: JSON.stringify({
-            event: eventName,
-            timestamp: new Date().toISOString(),
+          key: payload.userId || "messaging-event",
+          value: JSON.stringify(message),
+          headers: {
+            "content-type": "application/json",
             service: "messaging-service",
-            payload,
-          }),
+          },
         },
       ],
     });
+
     console.log("📤 Event sent to Kafka:", eventName);
+    return message;
   } catch (err) {
-    console.error("Error sending event to Kafka:", err);
+    console.error("❌ Kafka send failed:", err.message);
+    throw err;
   }
 }
 
+// ==============================
+// CLEANUP
+// ==============================
 export async function disconnectProducer() {
-  await producer.disconnect();
+  try {
+    await producer.disconnect();
+    console.log("✅ Producer disconnected");
+  } catch (err) {
+    console.error("❌ Producer disconnect error:", err.message);
+  }
 }
 
 export async function disconnectConsumer() {
-  await consumer.disconnect();
+  try {
+    await consumer.disconnect();
+    console.log("✅ Consumer disconnected");
+  } catch (err) {
+    console.error("❌ Consumer disconnect error:", err.message);
+  }
 }
