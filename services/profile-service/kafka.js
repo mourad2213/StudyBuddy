@@ -1,22 +1,16 @@
 const { Kafka } = require("kafkajs");
 
 // ============================================
-// VALIDATE REQUIRED AIVEN CONFIGURATION
+// VALIDATE & CONFIGURE KAFKA
 // ============================================
 const validateKafkaConfig = () => {
-  const brokers = process.env.KAFKA_BROKERS?.trim();
+  const brokers = (process.env.KAFKA_BROKERS || process.env.KAFKA_BROKER)?.trim();
   const username = process.env.KAFKA_USERNAME?.trim();
   const password = process.env.KAFKA_PASSWORD?.trim();
 
   if (!brokers) {
     throw new Error(
-      "KAFKA_BROKERS environment variable is required (comma-separated: host1:9092,host2:9092)"
-    );
-  }
-
-  if (!username || !password) {
-    throw new Error(
-      "KAFKA_USERNAME and KAFKA_PASSWORD environment variables are required for Aiven"
+      "KAFKA_BROKERS (or KAFKA_BROKER) environment variable is required (comma-separated: host1:9092,host2:9092)"
     );
   }
 
@@ -33,19 +27,9 @@ if (brokers.length === 0) {
   throw new Error("No valid brokers found after parsing KAFKA_BROKERS");
 }
 
-// ============================================
-// KAFKA CLIENT - AIVEN ONLY
-// ============================================
-const kafka = new Kafka({
+const kafkaConfig = {
   clientId: "profile-service",
   brokers,
-
-  ssl: true,
-  sasl: {
-    mechanism: "plain",
-    username,
-    password,
-  },
 
   // Retry configuration
   retry: {
@@ -54,7 +38,18 @@ const kafka = new Kafka({
     maxRetryTime: 30000,
     multiplier: 2,
   },
-});
+};
+
+if (username && password) {
+  kafkaConfig.ssl = true;
+  kafkaConfig.sasl = {
+    mechanism: "plain",
+    username,
+    password,
+  };
+}
+
+const kafka = new Kafka(kafkaConfig);
 
 const producer = kafka.producer();
 
@@ -122,14 +117,14 @@ async function sendEvent(eventName, payload) {
 }
 
 // ============================================
-// DISCONNECT PRODUCER
+// DISCONNECT
 // ============================================
 async function disconnectKafka() {
   try {
     await producer.disconnect();
-    console.log("✅ Kafka Producer Disconnected");
+    console.log("✅ Kafka producer disconnected (profile-service)");
   } catch (err) {
-    console.error("❌ Error disconnecting Kafka producer:", err);
+    console.error("Error disconnecting Kafka producer:", err.message);
   }
 }
 
