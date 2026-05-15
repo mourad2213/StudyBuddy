@@ -1,100 +1,187 @@
 const { Kafka } = require("kafkajs");
+require("dotenv").config();
 
-const kafka = new Kafka({
+const validateKafkaConfig = () => {
+  const brokers = (process.env.KAFKA_BROKERS || process.env.KAFKA_BROKER)?.trim();
+  const username = process.env.KAFKA_USERNAME?.trim();
+  const password = process.env.KAFKA_PASSWORD?.trim();
+
+  if (!brokers) {
+    throw new Error(
+      "KAFKA_BROKERS (or KAFKA_BROKER) environment variable is required (comma-separated: host1:9092,host2:9092)"
+    );
+  }
+
+  return { brokers, username, password };
+};
+
+const { brokers: brokerString, username, password } = validateKafkaConfig();
+const brokers = brokerString
+  .split(",")
+  .map((b) => b.trim())
+  .filter(Boolean);
+
+if (brokers.length === 0) {
+  throw new Error("No valid brokers found after parsing KAFKA_BROKERS");
+}
+
+const kafkaConfig = {
   clientId: "availability-service",
-  brokers: [process.env.KAFKA_BROKER || "kafka:29092"],
-});
+  brokers,
 
+  // Retry configuration
+  retry: {
+    initialRetryTime: 300,
+    retries: 8,
+    maxRetryTime: 30000,
+    multiplier: 2,
+  },
+};
+
+if (username && password) {
+  kafkaConfig.ssl = true;
+  kafkaConfig.sasl = {
+    mechanism: "plain",
+    username,
+    password,
+  };
+}
+
+const kafka = new Kafka(kafkaConfig);
+
+// ✅ FIX: producer was never instantiated
 const producer = kafka.producer();
-let isProducerConnected = false;
 
-const initKafka = async () => {
+const connectProducer = async () => {
   let retries = 10;
+
   while (retries > 0) {
     try {
       await producer.connect();
-      isProducerConnected = true;
-      console.log("Kafka Producer Ready");
+      console.log("✅ Kafka Producer Connected (availability-service)");
       return;
     } catch (err) {
       retries--;
-      console.log(`⏳ Kafka not ready, retrying... (${retries} left)`);
+      console.log(
+        `⏳ Producer not ready, retrying in 5s... (${retries} retries left)`
+      );
+      console.error(err.message);
       await new Promise((res) => setTimeout(res, 5000));
+
+      if (retries === 0) {
+        console.error("❌ Producer failed to connect to Kafka after retries");
+        throw new Error("Failed to connect Kafka producer");
+      }
     }
   }
-  console.error("❌ Could not connect Kafka producer after retries");
 };
 
-const publishEvent = async (eventType, data) => {
-  if (!isProducerConnected) {
-    console.warn("Kafka producer not connected, skipping event:", eventType);
-    return null;
-  }
-
-  const message = {
-    eventName: eventType,
-    timestamp: new Date().toISOString(),
-    producerService: "availability-service",
-    correlationId: data.userId || "system",
-    payload: data,
-  };
-
-  try {
-    await producer.send({
-      topic: "availability-events",
-      messages: [{ value: JSON.stringify(message) }],
-    });
-    console.log("Event published:", eventType);
-  } catch (err) {
-    console.error("Error publishing event:", err);
-    return null;
-  }
-};
-
-// Also publish to the specific topic names matching service listens to
-const publishAvailabilityEvent = async (eventType, data) => {
-  if (!isProducerConnected) {
-    console.warn("Kafka producer not connected, skipping:", eventType);
-    return null;
-  }
-
-  const message = {
-    eventName: eventType,
-    timestamp: new Date().toISOString(),
-    producerService: "availability-service",
-    correlationId: data.userId || "system",
-    payload: data,
-  };
-
-  try {
-    // Publish to both the generic topic AND the specific named topic
-    // so matching-service (which listens to AvailabilityCreated etc.) receives it
-    await producer.send({
-      topic: eventType, // e.g. "AvailabilityCreated"
-      messages: [{ value: JSON.stringify(message) }],
-    });
-    await producer.send({
-      topic: "availability-events",
-      messages: [{ value: JSON.stringify(message) }],
-    });
-    console.log("Availability event published:", eventType);
-  } catch (err) {
-    console.error("Error publishing availability event:", err);
-    return null;
-  }
-};
-
-const closeKafka = async () => {
+const disconnectProducer = async () => {
   try {
     await producer.disconnect();
+    console.log("✅ Kafka Producer Disconnected");
   } catch (err) {
-    console.error("Error closing Kafka:", err);
+    console.error("Error disconnecting producer:", err.message);
   }
 };
 
+// ============================================
+// PUBLISH EVENTS
+// ============================================
+const publishEvent = async (eventType, data) => {
+  try {
+    const message = {
+      eventName: eventType,
+      timestamp: new Date().toISOString(),
+      producerService: "availability-service",
+      correlationId: data.userId || "system",
+      payload: data,
+    };
+
+    await producer.send({
+      topic: "availability-events",
+      messages: [
+        {
+          key: data.userId || "availability-event",
+          value: JSON.stringify(message),
+          headers: {
+            "content-type": "application/json",
+            service: "availability-service",
+          },
+        },
+      ],
+    });
+
+    console.log("📤 Event published:", eventType);
+    return message;
+  } catch (err) {
+    console.error("Error publishing event:", err.message);
+    throw err;
+  }
+};
+
+const publishAvailabilityEvent = async (eventType, data) => {
+  try {
+    const message = {
+      eventName: eventType,
+      timestamp: new Date().toISOString(),
+      producerService: "availability-service",
+      correlationId: data.userId || "system",
+      payload: data,
+    };
+
+    // Publish to event-specific topic
+    await producer.send({
+      topic: eventType,
+      messages: [
+        {
+          key: data.userId || "availability-event",
+          value: JSON.stringify(message),
+          headers: {
+            "content-type": "application/json",
+            service: "availability-service",
+          },
+        },
+      ],
+    });
+
+    // Also publish to shared topic
+    await producer.send({
+      topic: "availability-events",
+      messages: [
+        {
+          key: data.userId || "availability-event",
+          value: JSON.stringify(message),
+          headers: {
+            "content-type": "application/json",
+            service: "availability-service",
+          },
+        },
+      ],
+    });
+
+    console.log("📤 Availability event published:", eventType);
+    return message;
+  } catch (err) {
+    console.error("Error publishing availability event:", err.message);
+    throw err;
+  }
+};
+
+// ============================================
+// INITIALIZATION & CLEANUP
+// ============================================
+const initKafka = connectProducer;
+
+const closeKafka = disconnectProducer;
+
 module.exports = {
+  kafka,
+  producer,
+  connectProducer,
+  disconnectProducer,
   initKafka,
+  closeKafka,
   publishEvent,
   publishAvailabilityEvent,
-  closeKafka,
 };
