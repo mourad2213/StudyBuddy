@@ -1,31 +1,88 @@
 const { Kafka } = require("kafkajs");
 
-const kafka = new Kafka({
+// ============================================
+// VALIDATE & CONFIGURE KAFKA
+// ============================================
+const validateKafkaConfig = () => {
+  const brokers = (process.env.KAFKA_BROKERS || process.env.KAFKA_BROKER)?.trim();
+  const username = process.env.KAFKA_USERNAME?.trim();
+  const password = process.env.KAFKA_PASSWORD?.trim();
+
+  if (!brokers) {
+    throw new Error(
+      "KAFKA_BROKERS (or KAFKA_BROKER) environment variable is required (comma-separated: host1:9092,host2:9092)"
+    );
+  }
+
+  return { brokers, username, password };
+};
+
+const { brokers: brokerString, username, password } = validateKafkaConfig();
+const brokers = brokerString
+  .split(",")
+  .map((b) => b.trim())
+  .filter(Boolean);
+
+if (brokers.length === 0) {
+  throw new Error("No valid brokers found after parsing KAFKA_BROKERS");
+}
+
+const kafkaConfig = {
   clientId: "profile-service",
-  brokers: [process.env.KAFKA_BROKER || "kafka:29092"],
-});
+  brokers,
+
+  // Retry configuration
+  retry: {
+    initialRetryTime: 300,
+    retries: 8,
+    maxRetryTime: 30000,
+    multiplier: 2,
+  },
+};
+
+if (username && password) {
+  kafkaConfig.ssl = true;
+  kafkaConfig.sasl = {
+    mechanism: "plain",
+    username,
+    password,
+  };
+}
+
+const kafka = new Kafka(kafkaConfig);
 
 const producer = kafka.producer();
 
+// ============================================
+// PRODUCER CONNECTION
+// ============================================
 async function connectKafka() {
   let retries = 10;
+
   while (retries > 0) {
     try {
       await producer.connect();
-      console.log("✅ Kafka Producer Connected");
-      break;
+      console.log("✅ Kafka Producer Connected (profile-service)");
+      return;
     } catch (err) {
       retries--;
-      console.log(`⏳ Kafka not ready, retrying in 5s... (${retries} retries left)`);
+      console.log(
+        `⏳ Producer not ready, retrying in 5s... (${retries} retries left)`
+      );
+      console.error(err.message);
       await new Promise((res) => setTimeout(res, 5000));
+
       if (retries === 0) {
-        console.error("❌ Could not connect to Kafka after multiple retries");
-        return;
+        console.error("❌ Producer failed to connect to Kafka after retries");
+        throw new Error("Failed to connect Kafka producer");
       }
     }
   }
 }
 
+// ============================================
+// SEND EVENT
+// ============================================
 async function sendEvent(eventName, payload) {
   const message = {
     eventName,
@@ -59,4 +116,16 @@ async function sendEvent(eventName, payload) {
   console.log("📤 Event sent to Kafka:", eventName);
 }
 
-module.exports = { connectKafka, sendEvent };
+// ============================================
+// DISCONNECT
+// ============================================
+async function disconnectKafka() {
+  try {
+    await producer.disconnect();
+    console.log("✅ Kafka producer disconnected (profile-service)");
+  } catch (err) {
+    console.error("Error disconnecting Kafka producer:", err.message);
+  }
+}
+
+module.exports = { kafka, producer, connectKafka, disconnectKafka, sendEvent };
