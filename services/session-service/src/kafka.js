@@ -1,22 +1,17 @@
 const { Kafka, logLevel } = require("kafkajs");
 
 // ============================================
-// VALIDATE REQUIRED AIVEN CONFIGURATION
+// VALIDATE & CONFIGURE KAFKA
 // ============================================
 const validateKafkaConfig = () => {
-  const brokers = process.env.KAFKA_BROKERS?.trim();
+  // Support both KAFKA_BROKERS and KAFKA_BROKER for backwards compatibility
+  const brokers = (process.env.KAFKA_BROKERS || process.env.KAFKA_BROKER)?.trim();
   const username = process.env.KAFKA_USERNAME?.trim();
   const password = process.env.KAFKA_PASSWORD?.trim();
 
   if (!brokers) {
     throw new Error(
-      "KAFKA_BROKERS environment variable is required (comma-separated: host1:9092,host2:9092)"
-    );
-  }
-
-  if (!username || !password) {
-    throw new Error(
-      "KAFKA_USERNAME and KAFKA_PASSWORD environment variables are required for Aiven"
+      "KAFKA_BROKERS (or KAFKA_BROKER) environment variable is required (comma-separated: host1:9092,host2:9092)"
     );
   }
 
@@ -33,21 +28,12 @@ if (brokers.length === 0) {
   throw new Error("No valid brokers found after parsing KAFKA_BROKERS");
 }
 
-// ============================================
-// KAFKA CLIENT - AIVEN ONLY
-// ============================================
-const kafka = new Kafka({
+// Build Kafka config - support both Aiven (with SASL/SSL) and local Confluent Kafka
+const kafkaConfig = {
   clientId: "session-service",
   brokers,
 
   logLevel: logLevel.INFO,
-  ssl: true,
-  sasl: {
-    mechanism: "plain",
-    username,
-    password,
-  },
-
   // Retry configuration
   retry: {
     initialRetryTime: 300,
@@ -55,7 +41,22 @@ const kafka = new Kafka({
     maxRetryTime: 30000,
     multiplier: 2,
   },
-});
+};
+
+// Only add SASL/SSL if credentials are provided (Aiven Kafka)
+if (username && password) {
+  kafkaConfig.ssl = true;
+  kafkaConfig.sasl = {
+    mechanism: "plain",
+    username,
+    password,
+  };
+}
+
+// ============================================
+// KAFKA CLIENT - LOCAL OR AIVEN
+// ============================================
+const kafka = new Kafka(kafkaConfig);
 
 const producer = kafka.producer({
   allowAutoTopicCreation: true,
