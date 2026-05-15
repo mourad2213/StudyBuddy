@@ -76,7 +76,7 @@ services:
       PORT: 4001
       SERVICE_NAME: user-service
       DATABASE_URL: postgresql://neondb_owner:npg_a7hwVX5msfHg@ep-wandering-shadow-anmfx1jj-pooler.c-6.us-east-1.aws.neon.tech/User_db?sslmode=require&channel_binding=require
-      KAFKA_BROKER: kafka:29092
+      KAFKA_BROKERS: kafka:29092
       JWT_SECRET: supersecret
       NODE_ENV: development
     depends_on:
@@ -98,7 +98,7 @@ services:
       PORT: 4002
       SERVICE_NAME: availability-service
       DATABASE_URL: postgresql://neondb_owner:npg_a7hwVX5msfHg@ep-wandering-shadow-anmfx1jj-pooler.c-6.us-east-1.aws.neon.tech/Availability_db?sslmode=require&channel_binding=require
-      KAFKA_BROKER: kafka:29092
+      KAFKA_BROKERS: kafka:29092
       JWT_SECRET: supersecret
       NODE_ENV: development
     depends_on:
@@ -140,7 +140,7 @@ services:
       DATABASE_URL: postgresql://neondb_owner:npg_a7hwVX5msfHg@ep-wandering-shadow-anmfx1jj-pooler.c-6.us-east-1.aws.neon.tech/messaging_db?sslmode=require&channel_binding=require
       DIRECT_URL: postgresql://neondb_owner:npg_a7hwVX5msfHg@ep-wandering-shadow-anmfx1jj-pooler.c-6.us-east-1.aws.neon.tech/messaging_db?sslmode=require&channel_binding=require
       MATCHING_DATABASE_URL: postgresql://neondb_owner:npg_a7hwVX5msfHg@ep-wandering-shadow-anmfx1jj-pooler.c-6.us-east-1.aws.neon.tech/Matching_db?sslmode=require&channel_binding=require
-      KAFKA_BROKER: kafka:29092
+      KAFKA_BROKERS: kafka:29092
       JWT_SECRET: your_jwt_secret_key
       NODE_ENV: development
     depends_on:
@@ -174,7 +174,7 @@ services:
       PORT: 4005
       SERVICE_NAME: notification-service
       DATABASE_URL: "postgresql://neondb_owner:npg_a7hwVX5msfHg@ep-wandering-shadow-anmfx1jj-pooler.c-6.us-east-1.aws.neon.tech/Notification_db?sslmode=require"
-      KAFKA_BROKER: kafka:29092
+      KAFKA_BROKERS: kafka:29092
       NODE_ENV: development
     depends_on:
       kafka:
@@ -193,7 +193,7 @@ services:
       PORT: 4006
       SERVICE_NAME: profile-service
       DATABASE_URL: "postgresql://neondb_owner:npg_a7hwVX5msfHg@ep-wandering-shadow-anmfx1jj-pooler.c-6.us-east-1.aws.neon.tech/Profile%20and%20Study%20Preferences_db?sslmode=require"
-      KAFKA_BROKER: kafka:29092
+      KAFKA_BROKERS: kafka:29092
       NODE_ENV: development
     depends_on:
       kafka:
