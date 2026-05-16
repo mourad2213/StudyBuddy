@@ -29,7 +29,7 @@ async function cacheUserData(userId, data) {
       topics: data.topics || [],
       studyPace: data.studyPace,
       studyMode: data.studyMode,
-      groupSize: data.groupSize,
+      groupSize: data.groupSize ?? 2,
       studyStyle: data.studyStyle,
       availability: data.availability ?? [],
       lastUpdated: new Date(),
@@ -40,7 +40,7 @@ async function cacheUserData(userId, data) {
       topics: data.topics || [],
       studyPace: data.studyPace,
       studyMode: data.studyMode,
-      groupSize: data.groupSize,
+      groupSize: data.groupSize ?? 2,
       studyStyle: data.studyStyle,
       availability: data.availability ?? [],
     },
@@ -114,6 +114,14 @@ async function startServer() {
   });
 
   console.log(`Matching service running at ${url}`);
+
+  // Startup cleanup: ensure no NULL group_size values exist (Prisma expects non-nullable Int)
+  try {
+    await prisma.$executeRawUnsafe('UPDATE cached_user_data SET group_size = 2 WHERE group_size IS NULL;');
+    console.log('Cleaned cached_user_data: set NULL group_size to 2');
+  } catch (cleanupErr) {
+    console.error('Failed to run cached_user_data cleanup:', cleanupErr.message || cleanupErr);
+  }
 
   try {
     await connectConsumer();

@@ -126,7 +126,9 @@ function timeToMinutes(time) {
 function checkPreferencesMatch(user1, user2) {
   const paceMatch = user1.studyPace === user2.studyPace;
   const modeMatch = user1.studyMode === user2.studyMode;
-  const groupSizeDiff = Math.abs(user1.groupSize - user2.groupSize) <= 1;
+  const g1 = user1.groupSize ?? 2;
+  const g2 = user2.groupSize ?? 2;
+  const groupSizeDiff = Math.abs(g1 - g2) <= 1;
 
   return paceMatch && modeMatch && groupSizeDiff;
 }
